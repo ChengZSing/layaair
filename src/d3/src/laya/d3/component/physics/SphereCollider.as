@@ -136,8 +136,16 @@ package laya.d3.component.physics {
 				var meshCollider:MeshCollider = other as MeshCollider;
 				if (Collision.sphereContainsBox(this.boundSphere, meshCollider._boundBox) !== ContainmentType.Disjoint) {
 					var positions:Vector.<Vector3> = meshCollider.mesh._positions;
-					for (var i:int = 0, n:int = positions.length; i < n; i++) {
-						if (Collision.sphereContainsPoint(this.boundSphere, positions[i]) === ContainmentType.Contains)
+					// bugfix for meshcollider
+					// for (var i:int = 0, n:int = positions.length; i < n; i++) {
+					// 	 if (Collision.sphereContainsPoint(this.boundSphere, positions[i]) === ContainmentType.Contains)
+					//		 return true
+					// }
+					var worldMat:Matrix4x4 = other.owner.transform.worldMatrix
+					var vec = new Vector3()
+					for (var i = 0, iLen = positions.length; i < iLen; i++) {
+						Vector3.transformCoordinate(positions[i], worldMat, vec)
+						if (Collision.sphereContainsPoint(this.boundSphere,vec)===/*laya.d3.math.ContainmentType.Contains*/1)
 							return true
 					}
 					return false;

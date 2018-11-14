@@ -142,7 +142,15 @@ package laya.d3.component.physics {
 				var meshCollider:MeshCollider = other as MeshCollider;
 				if (boundBox.containsBoundBox(meshCollider._boundBox) !== ContainmentType.Disjoint) {
 					var positions:Vector.<Vector3> = (other as MeshCollider).mesh._positions;
-					for (var i:int = 0, n:int = positions.length; i < n; i++) {
+					// bugfix for meshcollider
+					// for (var i:int = 0, n:int = positions.length; i < n; i++) {
+					//	 if (boundBox.containsPoint(positions[i]) === ContainmentType.Contains)
+					//		 return true
+					// }
+					var worldMat:Matrix4x4 = other.owner.transform.worldMatrix
+					var vec = new Vector3()
+					for (var i = 0, iLen = positions.length; i < iLen; i++) {
+						Vector3.transformCoordinate(positions[i], worldMat, vec)
 						if (boundBox.containsPoint(positions[i]) === ContainmentType.Contains)
 							return true
 					}
