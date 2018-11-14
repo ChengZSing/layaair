@@ -4,6 +4,9 @@ var rename = require('gulp-rename');
 var cp = require('child_process');
 var minimist = require('minimist');
 
+var argv = minimist(process.argv.slice(2));
+var os = argv.p || 'win'	// win or macos
+
 var PathLayaAir = '../../..';
 
 gulp.task('copyas', function(cb) {
@@ -77,7 +80,7 @@ gulp.task('copyas', function(cb) {
 });
 
 gulp.task('compile',["copyas"], function(cb) {
-    cp.execFile('compile.bat',function(){cb();});
+    cp.execFile(os === 'macos' ? 'compile.sh' : 'compile.bat',function(){cb();});
 });
 
 gulp.task('minify',["compile"], function() {
