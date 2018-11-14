@@ -1,19 +1,81 @@
 
-(function(window,document,Laya){
-	var __un=Laya.un,__uns=Laya.uns,__static=Laya.static,__class=Laya.class,__getset=Laya.getset,__newvec=Laya.__newvec;
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/utils/LayoutLine.as=======199.999845/199.999845
+//class laya.html.utils.LayoutLine
+var LayoutLine=(function(){
+	function LayoutLine(){
+		this.x=0;
+		this.y=0;
+		this.w=0;
+		this.h=0;
+		this.wordStartIndex=0;
+		this.minTextHeight=99999;
+		this.mWidth=0;
+		this.elements=new Array;
+	}
 
-	var Browser=laya.utils.Browser,CSSStyle=laya.display.css.CSSStyle,ClassUtils=laya.utils.ClassUtils;
-	var Event=laya.events.Event,HTMLChar=laya.utils.HTMLChar,Loader=laya.net.Loader,Node=laya.display.Node,Rectangle=laya.maths.Rectangle;
-	var Render=laya.renders.Render,RenderContext=laya.renders.RenderContext,RenderSprite=laya.renders.RenderSprite;
-	var Sprite=laya.display.Sprite,Stat=laya.utils.Stat,Text=laya.display.Text,Texture=laya.resource.Texture;
-	var URL=laya.net.URL,Utils=laya.utils.Utils;
-/**
-*@private
-*/
+	__class(LayoutLine,'laya.html.utils.LayoutLine',true);
+	var __proto=LayoutLine.prototype;
+	__proto.updatePos=function(left,width,lineNum,dy,align,valign,lineHeight){
+		var w=0;
+		var one
+		if (this.elements.length > 0){
+			one=this.elements[this.elements.length-1];
+			w=one.x+one.width-this.elements[0].x;
+		};
+		var dx=0,ddy=NaN;
+		align==/*laya.display.css.CSSStyle.ALIGN_CENTER*/1 && (dx=(width-w)/ 2);
+		align==/*laya.display.css.CSSStyle.ALIGN_RIGHT*/2 && (dx=(width-w));
+		lineHeight==0 || valign !=0 || (valign=1);
+		for (var i=0,n=this.elements.length;i < n;i++){
+			one=this.elements[i];
+			var tCSSStyle=one._getCSSStyle();
+			dx!=0 && (one.x+=dx);
+			switch (tCSSStyle._getValign()){
+				case 0:
+					one.y=dy;
+					break ;
+				case /*laya.display.css.CSSStyle.VALIGN_MIDDLE*/1:;
+					var tMinTextHeight=0;
+					if (this.minTextHeight !=99999){
+						tMinTextHeight=this.minTextHeight;
+					};
+					var tBottomLineY=(tMinTextHeight+lineHeight)/ 2;
+					tBottomLineY=Math.max(tBottomLineY,this.h);
+					if ((one instanceof laya.html.dom.HTMLImageElement )){
+						ddy=dy+tBottomLineY-one.height;
+						}else {
+						ddy=dy+tBottomLineY-one.height;
+					}
+					one.y=ddy;
+					break ;
+				case /*laya.display.css.CSSStyle.VALIGN_BOTTOM*/2:
+					one.y=dy+(lineHeight-one.height);
+					break ;
+				}
+		}
+	}
+
+	__proto.revertOrder=function(width){
+		var one
+		if (this.elements.length > 0){
+			var i=0,len=0;
+			len=this.elements.length;
+			for (i=0;i < len;i++){
+				one=this.elements[i];
+				one.x=width-one.x-one.width;
+			}
+		}
+	}
+
+	return LayoutLine;
+})()
+
+
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/utils/HTMLParse.as=======199.999844/199.999844
 //class laya.html.utils.HTMLParse
 var HTMLParse=(function(){
 	function HTMLParse(){}
-	__class(HTMLParse,'laya.html.utils.HTMLParse');
+	__class(HTMLParse,'laya.html.utils.HTMLParse',true);
 	HTMLParse.parse=function(ower,xmlString,url){
 		xmlString=xmlString.replace(/<br>/g,"<br/>");
 		xmlString="<root>"+xmlString+"</root>";
@@ -85,15 +147,11 @@ var HTMLParse=(function(){
 })()
 
 
-/**
-*@private
-*HTML的布局类
-*对HTML的显示对象进行排版
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/utils/Layout.as=======199.999843/199.999843
 //class laya.html.utils.Layout
 var Layout=(function(){
 	function Layout(){}
-	__class(Layout,'laya.html.utils.Layout');
+	__class(Layout,'laya.html.utils.Layout',true);
 	Layout.later=function(element){
 		if (Layout._will==null){
 			Layout._will=[];
@@ -111,7 +169,7 @@ var Layout=(function(){
 
 	Layout.layout=function(element){
 		if (!element || !element._style)return null;
-		if ((element._style._type & /*laya.display.css.CSSStyle.ADDLAYOUTED*/0x200)===0)
+		if ((element._style._type & /*laya.display.css.CSSStyle.ADDLAYOUTED*/0x200)==0)
 			return null;
 		element.getStyle()._type &=~ /*laya.display.css.CSSStyle.ADDLAYOUTED*/0x200;
 		var arr=Layout._multiLineLayout(element);
@@ -137,7 +195,7 @@ var Layout=(function(){
 		var exWidth=style.italic ? style.fontSize / 3 :0;
 		var align=style._getAlign();
 		var valign=style._getValign();
-		var endAdjust=valign!==0 || align!==0 || lineHeight !=0;
+		var endAdjust=valign!=0 || align!=0 || lineHeight !=0;
 		var oneLayout;
 		var x=0;
 		var y=0;
@@ -197,7 +255,7 @@ var Layout=(function(){
 					newLine=false;
 					tWordWidth+=htmlWord.width;
 					}else {
-					newLine=nextNewline || (htmlWord.char==='\n');
+					newLine=nextNewline || (htmlWord.char=='\n');
 					curLine.wordStartIndex=curLine.elements.length;
 				}
 				w=htmlWord.width+letterSpacing;
@@ -210,7 +268,7 @@ var Layout=(function(){
 				curStyle=oneLayout._getCSSStyle();
 				sprite=oneLayout;
 				curPadding=curStyle.padding;
-				curStyle._getCssFloat()===0 || (endAdjust=true);
+				curStyle._getCssFloat()==0 || (endAdjust=true);
 				newLine=nextNewline || curStyle.lineElement;
 				w=sprite.width *sprite._style._tf.scaleX+curPadding[1]+curPadding[3]+letterSpacing;
 				h=sprite.height *sprite._style._tf.scaleY+curPadding[0]+curPadding[2];
@@ -260,7 +318,7 @@ var Layout=(function(){
 		var exWidth=style.italic ? style.fontSize / 3 :0;
 		var align=2-style._getAlign();
 		var valign=style._getValign();
-		var endAdjust=valign!==0 || align!==0 || lineHeight !=0;
+		var endAdjust=valign!=0 || align!=0 || lineHeight !=0;
 		var oneLayout;
 		var x=0;
 		var y=0;
@@ -320,7 +378,7 @@ var Layout=(function(){
 					newLine=false;
 					tWordWidth+=htmlWord.width;
 					}else {
-					newLine=nextNewline || (htmlWord.char==='\n');
+					newLine=nextNewline || (htmlWord.char=='\n');
 					curLine.wordStartIndex=curLine.elements.length;
 				}
 				w=htmlWord.width+letterSpacing;
@@ -333,7 +391,7 @@ var Layout=(function(){
 				curStyle=oneLayout._getCSSStyle();
 				sprite=oneLayout;
 				curPadding=curStyle.padding;
-				curStyle._getCssFloat()===0 || (endAdjust=true);
+				curStyle._getCssFloat()==0 || (endAdjust=true);
 				newLine=nextNewline || curStyle.lineElement;
 				w=sprite.width *sprite._style._tf.scaleX+curPadding[1]+curPadding[3]+letterSpacing;
 				h=sprite.height *sprite._style._tf.scaleY+curPadding[0]+curPadding[2];
@@ -374,95 +432,7 @@ var Layout=(function(){
 })()
 
 
-/**
-*@private
-*/
-//class laya.html.utils.LayoutLine
-var LayoutLine=(function(){
-	function LayoutLine(){
-		this.x=0;
-		this.y=0;
-		this.w=0;
-		this.h=0;
-		this.wordStartIndex=0;
-		this.minTextHeight=99999;
-		this.mWidth=0;
-		this.elements=new Array;
-	}
-
-	__class(LayoutLine,'laya.html.utils.LayoutLine');
-	var __proto=LayoutLine.prototype;
-	/**
-	*底对齐（默认）
-	*@param left
-	*@param width
-	*@param dy
-	*@param align 水平
-	*@param valign 垂直
-	*@param lineHeight 行高
-	*/
-	__proto.updatePos=function(left,width,lineNum,dy,align,valign,lineHeight){
-		var w=0;
-		var one
-		if (this.elements.length > 0){
-			one=this.elements[this.elements.length-1];
-			w=one.x+one.width-this.elements[0].x;
-		};
-		var dx=0,ddy=NaN;
-		align===/*laya.display.css.CSSStyle.ALIGN_CENTER*/1 && (dx=(width-w)/ 2);
-		align===/*laya.display.css.CSSStyle.ALIGN_RIGHT*/2 && (dx=(width-w));
-		lineHeight===0 || valign !=0 || (valign=1);
-		for (var i=0,n=this.elements.length;i < n;i++){
-			one=this.elements[i];
-			var tCSSStyle=one._getCSSStyle();
-			dx!==0 && (one.x+=dx);
-			switch (tCSSStyle._getValign()){
-				case 0:
-					one.y=dy;
-					break ;
-				case /*laya.display.css.CSSStyle.VALIGN_MIDDLE*/1:;
-					var tMinTextHeight=0;
-					if (this.minTextHeight !=99999){
-						tMinTextHeight=this.minTextHeight;
-					};
-					var tBottomLineY=(tMinTextHeight+lineHeight)/ 2;
-					tBottomLineY=Math.max(tBottomLineY,this.h);
-					if ((one instanceof laya.html.dom.HTMLImageElement )){
-						ddy=dy+tBottomLineY-one.height;
-						}else {
-						ddy=dy+tBottomLineY-one.height;
-					}
-					one.y=ddy;
-					break ;
-				case /*laya.display.css.CSSStyle.VALIGN_BOTTOM*/2:
-					one.y=dy+(lineHeight-one.height);
-					break ;
-				}
-		}
-	}
-
-	/**
-	*布局反向,目前用于将ltr模式布局转为rtl模式布局
-	*/
-	__proto.revertOrder=function(width){
-		var one
-		if (this.elements.length > 0){
-			var i=0,len=0;
-			len=this.elements.length;
-			for (i=0;i < len;i++){
-				one=this.elements[i];
-				one.x=width-one.x-one.width;
-			}
-		}
-	}
-
-	return LayoutLine;
-})()
-
-
-/**
-*@private
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLElement.as=======96.999720/96.999720
 //class laya.html.dom.HTMLElement extends laya.display.Sprite
 var HTMLElement=(function(_super){
 	function HTMLElement(){
@@ -475,11 +445,8 @@ var HTMLElement=(function(_super){
 		this.mouseEnabled=true;
 	}
 
-	__class(HTMLElement,'laya.html.dom.HTMLElement',_super);
+	__class(HTMLElement,'laya.html.dom.HTMLElement',false,_super);
 	var __proto=HTMLElement.prototype;
-	/**
-	*@private
-	*/
 	__proto.layaoutCallNative=function(){
 		var n=0;
 		if (this._childs &&(n=this._childs.length)> 0){
@@ -495,12 +462,9 @@ var HTMLElement=(function(_super){
 		return this.addChild(c);
 	}
 
-	/**
-	*rtl模式的getWords函數
-	*/
 	__proto._getWords2=function(){
 		var txt=this._text.text;
-		if (!txt || txt.length===0)
+		if (!txt || txt.length==0)
 			return null;
 		var i=0,n=0;
 		var realWords;
@@ -519,9 +483,9 @@ var HTMLElement=(function(_super){
 			drawWords=this._text.drawWords;
 		};
 		var words=this._text.words;
-		if (words && words.length===drawWords.length)
+		if (words && words.length==drawWords.length)
 			return words;
-		words===null && (this._text.words=words=[]);
+		words==null && (this._text.words=words=[]);
 		words.length=drawWords.length;
 		var size;
 		var style=this.style;
@@ -544,12 +508,12 @@ var HTMLElement=(function(_super){
 	__proto._getWords=function(){
 		if (!Text.CharacterCache)return this._getWords2();
 		var txt=this._text.text;
-		if (!txt || txt.length===0)
+		if (!txt || txt.length==0)
 			return null;
 		var words=this._text.words;
-		if (words && words.length===txt.length)
+		if (words && words.length==txt.length)
 			return words;
-		words===null && (this._text.words=words=[]);
+		words==null && (this._text.words=words=[]);
 		words.length=txt.length;
 		var size;
 		var style=this.style;
@@ -620,7 +584,7 @@ var HTMLElement=(function(_super){
 					tSprite=tHTMLChar.getSprite();
 					if (tSprite){
 						tSprite.size(tHTMLChar.width,tHTMLChar.height);
-						tSprite.on(/*laya.events.Event.CLICK*/"click",this,this.onLinkHandler);
+						tSprite.on(/*laya.events.Event.CLICK*/"click",this,__bind(this,this.onLinkHandler));
 					}
 				}
 			}
@@ -644,18 +608,8 @@ var HTMLElement=(function(_super){
 		return URL.formatURL(url,this.URI ? this.URI.path :null);
 	}
 
-	__getset(0,__proto,'href',function(){
-		return this._href;
-		},function(url){
-		this._href=url;
-		if (url !=null){
-			this._getCSSStyle().underLine=1;
-			this.updateHref();
-		}
-	});
-
-	__getset(0,__proto,'color',null,function(value){
-		this.style.color=value;
+	__getset(0,__proto,'className',null,function(value){
+		this.style.attrs(HTMLDocument.document.styleSheets['.'+value]);
 	});
 
 	__getset(0,__proto,'onClick',null,function(value){
@@ -664,18 +618,10 @@ var HTMLElement=(function(_super){
 		this.on(/*laya.events.Event.CLICK*/"click",this,fn);
 	});
 
-	__getset(0,__proto,'id',null,function(value){
-		HTMLDocument.document.setElementById(value,this);
-	});
-
 	__getset(0,__proto,'innerTEXT',function(){
 		return this._text.text;
 		},function(value){
 		this.text=value;
-	});
-
-	__getset(0,__proto,'style',function(){
-		return this._style;
 	});
 
 	__getset(0,__proto,'text',function(){
@@ -694,6 +640,24 @@ var HTMLElement=(function(_super){
 		this.updateHref();
 	});
 
+	__getset(0,__proto,'style',function(){
+		return this._style;
+	});
+
+	__getset(0,__proto,'color',null,function(value){
+		this.style.color=value;
+	});
+
+	__getset(0,__proto,'href',function(){
+		return this._href;
+		},function(url){
+		this._href=url;
+		if (url !=null){
+			this._getCSSStyle().underLine=1;
+			this.updateHref();
+		}
+	});
+
 	__getset(0,__proto,'parent',_super.prototype._$get_parent,function(value){
 		if ((value instanceof laya.html.dom.HTMLElement )){
 			var p=value;
@@ -703,8 +667,8 @@ var HTMLElement=(function(_super){
 		Laya.superSet(Sprite,this,'parent',value);
 	});
 
-	__getset(0,__proto,'className',null,function(value){
-		this.style.attrs(HTMLDocument.document.styleSheets['.'+value]);
+	__getset(0,__proto,'id',null,function(value){
+		HTMLDocument.document.setElementById(value,this);
 	});
 
 	HTMLElement.fillWords=function(ele,words,x,y,font,color,underLine){
@@ -720,31 +684,46 @@ var HTMLElement=(function(_super){
 })(Sprite)
 
 
-/**
-*@private
-*/
-//class laya.html.dom.HTMLBrElement extends laya.html.dom.HTMLElement
-var HTMLBrElement=(function(_super){
-	function HTMLBrElement(){
-		HTMLBrElement.__super.call(this);
-		this.style.lineElement=true;
-		this.style.block=true;
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLLinkElement.as=======95.999562/95.999562
+//class laya.html.dom.HTMLLinkElement extends laya.html.dom.HTMLElement
+var HTMLLinkElement=(function(_super){
+	function HTMLLinkElement(){
+		this.type=null;
+		HTMLLinkElement.__super.call(this);
+		this.visible=false;
 	}
 
-	__class(HTMLBrElement,'laya.html.dom.HTMLBrElement',_super);
-	return HTMLBrElement;
+	__class(HTMLLinkElement,'laya.html.dom.HTMLLinkElement',false,_super);
+	var __proto=HTMLLinkElement.prototype;
+	__proto._onload=function(data){
+		switch(this.type){
+			case 'text/css':
+				CSSStyle.parseCSS(data,this.URI);
+				break ;
+			}
+	}
+
+	__getset(0,__proto,'href',_super.prototype._$get_href,function(url){
+		var _$this=this;
+		url=this.formatURL(url);
+		this.URI=new URL(url);
+		var l=new Loader();
+		l.once(/*laya.events.Event.COMPLETE*/"complete",null,function(data){
+			_$this._onload(data);
+		});
+		l.load(url,/*laya.net.Loader.TEXT*/"text");
+	});
+
+	HTMLLinkElement._cuttingStyle=new RegExp("((@keyframes[\\s\\t]+|)(.+))[\\t\\n\\r\\\s]*{","g");
+	return HTMLLinkElement;
 })(HTMLElement)
 
 
-/**
-*DIV标签
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLDivElement.as=======95.999560/95.999560
 //class laya.html.dom.HTMLDivElement extends laya.html.dom.HTMLElement
 var HTMLDivElement=(function(_super){
 	function HTMLDivElement(){
-		/**实际内容的高 */
 		this.contextHeight=NaN;
-		/**实际内容的宽 */
 		this.contextWidth=NaN;
 		HTMLDivElement.__super.call(this);
 		this.style.block=true;
@@ -754,22 +733,13 @@ var HTMLDivElement=(function(_super){
 		HTMLStyleElement;
 	}
 
-	__class(HTMLDivElement,'laya.html.dom.HTMLDivElement',_super);
+	__class(HTMLDivElement,'laya.html.dom.HTMLDivElement',false,_super);
 	var __proto=HTMLDivElement.prototype;
-	/**
-	*追加内容，解析并对显示对象排版
-	*@param text
-	*/
 	__proto.appendHTML=function(text){
 		HTMLParse.parse(this,text,this.URI);
 		this.layout();
 	}
 
-	/**
-	*@private
-	*@param out
-	*@return
-	*/
 	__proto._addChildsToLayout=function(out){
 		var words=this._getWords();
 		if (words==null && this._childs.length==0)return false;
@@ -789,18 +759,10 @@ var HTMLDivElement=(function(_super){
 		return true;
 	}
 
-	/**
-	*@private
-	*@param out
-	*/
 	__proto._addToLayout=function(out){
 		this.layout();
 	}
 
-	/**
-	*@private
-	*对显示内容进行排版
-	*/
 	__proto.layout=function(){
 		if (!this.style)return;
 		this.style._type |=/*laya.display.css.CSSStyle.ADDLAYOUTED*/0x200;
@@ -815,31 +777,17 @@ var HTMLDivElement=(function(_super){
 		}
 	}
 
-	/**
-	*获取对象的高
-	*/
 	__getset(0,__proto,'height',function(){
 		if (this._height)return this._height;
 		return this.contextHeight;
 	},_super.prototype._$set_height);
 
-	/**
-	*设置标签内容
-	*/
-	__getset(0,__proto,'innerHTML',null,function(text){
-		this.destroyChildren();
-		this.appendHTML(text);
-	});
-
-	/**
-	*获取对象的宽
-	*/
 	__getset(0,__proto,'width',function(){
 		if (this._width)return this._width;
 		return this.contextWidth;
 		},function(value){
 		var changed=false;
-		if (value===0){
+		if (value==0){
 			changed=value !=this._width;
 			}else{
 			changed=value !=this.width;
@@ -849,41 +797,16 @@ var HTMLDivElement=(function(_super){
 			this.layout();
 	});
 
+	__getset(0,__proto,'innerHTML',null,function(text){
+		this.destroyChildren();
+		this.appendHTML(text);
+	});
+
 	return HTMLDivElement;
 })(HTMLElement)
 
 
-/**
-*@private
-*/
-//class laya.html.dom.HTMLDocument extends laya.html.dom.HTMLElement
-var HTMLDocument=(function(_super){
-	function HTMLDocument(){
-		this.all=new Array;
-		this.styleSheets=CSSStyle.styleSheets;
-		HTMLDocument.__super.call(this);
-	}
-
-	__class(HTMLDocument,'laya.html.dom.HTMLDocument',_super);
-	var __proto=HTMLDocument.prototype;
-	__proto.getElementById=function(id){
-		return this.all[id];
-	}
-
-	__proto.setElementById=function(id,e){
-		this.all[id]=e;
-	}
-
-	__static(HTMLDocument,
-	['document',function(){return this.document=new HTMLDocument();}
-	]);
-	return HTMLDocument;
-})(HTMLElement)
-
-
-/**
-*@private
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLImageElement.as=======95.999559/95.999559
 //class laya.html.dom.HTMLImageElement extends laya.html.dom.HTMLElement
 var HTMLImageElement=(function(_super){
 	function HTMLImageElement(){
@@ -894,7 +817,7 @@ var HTMLImageElement=(function(_super){
 		this.style.block=true;
 	}
 
-	__class(HTMLImageElement,'laya.html.dom.HTMLImageElement',_super);
+	__class(HTMLImageElement,'laya.html.dom.HTMLImageElement',false,_super);
 	var __proto=HTMLImageElement.prototype;
 	__proto._addToLayout=function(out){
 		!this._style.absolute && out.push(this);
@@ -911,9 +834,6 @@ var HTMLImageElement=(function(_super){
 		context.ctx.drawTexture2(x,y,this.style.translateX,this.style.translateY,this.transform,this.style.alpha,this.style.blendMode,this._renderArgs);
 	}
 
-	/**
-	*@private
-	*/
 	__proto.layaoutCallNative=function(){
 		var n=0;
 		if (this._childs &&(n=this._childs.length)> 0){
@@ -964,46 +884,33 @@ var HTMLImageElement=(function(_super){
 })(HTMLElement)
 
 
-/**
-*@private
-*/
-//class laya.html.dom.HTMLLinkElement extends laya.html.dom.HTMLElement
-var HTMLLinkElement=(function(_super){
-	function HTMLLinkElement(){
-		this.type=null;
-		HTMLLinkElement.__super.call(this);
-		this.visible=false;
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLDocument.as=======95.999557/95.999557
+//class laya.html.dom.HTMLDocument extends laya.html.dom.HTMLElement
+var HTMLDocument=(function(_super){
+	function HTMLDocument(){
+		this.all=new Array;
+		this.styleSheets=CSSStyle.styleSheets;
+		HTMLDocument.__super.call(this);
 	}
 
-	__class(HTMLLinkElement,'laya.html.dom.HTMLLinkElement',_super);
-	var __proto=HTMLLinkElement.prototype;
-	__proto._onload=function(data){
-		switch(this.type){
-			case 'text/css':
-				CSSStyle.parseCSS(data,this.URI);
-				break ;
-			}
+	__class(HTMLDocument,'laya.html.dom.HTMLDocument',false,_super);
+	var __proto=HTMLDocument.prototype;
+	__proto.getElementById=function(id){
+		return this.all[id];
 	}
 
-	__getset(0,__proto,'href',_super.prototype._$get_href,function(url){
-		var _$this=this;
-		url=this.formatURL(url);
-		this.URI=new URL(url);
-		var l=new Loader();
-		l.once(/*laya.events.Event.COMPLETE*/"complete",null,function(data){
-			_$this._onload(data);
-		});
-		l.load(url,/*laya.net.Loader.TEXT*/"text");
-	});
+	__proto.setElementById=function(id,e){
+		this.all[id]=e;
+	}
 
-	HTMLLinkElement._cuttingStyle=new RegExp("((@keyframes[\\s\\t]+|)(.+))[\\t\\n\\r\\\s]*{","g");
-	return HTMLLinkElement;
+	__static(HTMLDocument,
+	['document',function(){return this.document=new HTMLDocument();}
+	]);
+	return HTMLDocument;
 })(HTMLElement)
 
 
-/**
-*@private
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLStyleElement.as=======95.999556/95.999556
 //class laya.html.dom.HTMLStyleElement extends laya.html.dom.HTMLElement
 var HTMLStyleElement=(function(_super){
 	function HTMLStyleElement(){
@@ -1011,11 +918,8 @@ var HTMLStyleElement=(function(_super){
 		this.visible=false;
 	}
 
-	__class(HTMLStyleElement,'laya.html.dom.HTMLStyleElement',_super);
+	__class(HTMLStyleElement,'laya.html.dom.HTMLStyleElement',false,_super);
 	var __proto=HTMLStyleElement.prototype;
-	/**
-	*解析样式
-	*/
 	__getset(0,__proto,'text',_super.prototype._$get_text,function(value){
 		CSSStyle.parseCSS(value,null);
 	});
@@ -1024,9 +928,21 @@ var HTMLStyleElement=(function(_super){
 })(HTMLElement)
 
 
-/**
-*iframe标签类，目前用于加载外并解析数据
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLBrElement.as=======95.999555/95.999555
+//class laya.html.dom.HTMLBrElement extends laya.html.dom.HTMLElement
+var HTMLBrElement=(function(_super){
+	function HTMLBrElement(){
+		HTMLBrElement.__super.call(this);
+		this.style.lineElement=true;
+		this.style.block=true;
+	}
+
+	__class(HTMLBrElement,'laya.html.dom.HTMLBrElement',false,_super);
+	return HTMLBrElement;
+})(HTMLElement)
+
+
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/html/src/laya/html/dom/HTMLIframeElement.as=======94.999398/94.999398
 //class laya.html.dom.HTMLIframeElement extends laya.html.dom.HTMLDivElement
 var HTMLIframeElement=(function(_super){
 	function HTMLIframeElement(){
@@ -1034,12 +950,8 @@ var HTMLIframeElement=(function(_super){
 		this._getCSSStyle().valign="middle";
 	}
 
-	__class(HTMLIframeElement,'laya.html.dom.HTMLIframeElement',_super);
+	__class(HTMLIframeElement,'laya.html.dom.HTMLIframeElement',false,_super);
 	var __proto=HTMLIframeElement.prototype;
-	/**
-	*加载html文件，并解析数据
-	*@param url
-	*/
 	__getset(0,__proto,'href',_super.prototype._$get_href,function(url){
 		var _$this=this;
 		url=this.formatURL(url);
@@ -1058,7 +970,6 @@ var HTMLIframeElement=(function(_super){
 
 
 
-})(window,document,Laya);
 
 if (typeof define === 'function' && define.amd){
 	define('laya.core', ['require', "exports"], function(require, exports) {

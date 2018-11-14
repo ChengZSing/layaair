@@ -1,139 +1,180 @@
 
-(function(window,document,Laya){
-	var __un=Laya.un,__uns=Laya.uns,__static=Laya.static,__class=Laya.class,__getset=Laya.getset,__newvec=Laya.__newvec;
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/tiledmap/src/laya/map/TileTexSet.as=======199.999812/199.999812
+//class laya.map.TileTexSet
+var TileTexSet=(function(){
+	function TileTexSet(){
+		this.gid=-1;
+		this.texture=null;
+		this.offX=0;
+		this.offY=0;
+		this.textureArray=null;
+		this.durationTimeArray=null;
+		this.animationTotalTime=0;
+		this.isAnimation=false;
+		this._spriteNum=0;
+		this._aniDic=null;
+		this._frameIndex=0;
+		this._time=0;
+		this._interval=0;
+		this._preFrameTime=0;
+	}
 
-	var Browser=laya.utils.Browser,HTMLCanvas=laya.resource.HTMLCanvas,Handler=laya.utils.Handler,Loader=laya.net.Loader;
-	var Point=laya.maths.Point,Rectangle=laya.maths.Rectangle,Render=laya.renders.Render,RenderContext=laya.renders.RenderContext;
-	var Sprite=laya.display.Sprite,Texture=laya.resource.Texture;
-/**
-*tiledMap是整个地图的核心
-*地图以层级来划分地图（例如：地表层，植被层，建筑层）
-*每层又以分块（GridSprite)来处理显示对象，只显示在视口区域的区
-*每块又包括N*N个格子（tile)
-*格子类型又分为动画格子跟图片格子两种
-*@author ...
-*/
+	__class(TileTexSet,'laya.map.TileTexSet',true);
+	var __proto=TileTexSet.prototype;
+	__proto.addAniSprite=function(aniName,sprite){
+		if (this.animationTotalTime==0){
+			return;
+		}
+		if (this._aniDic==null){
+			this._aniDic={};
+		}
+		if (this._spriteNum==0){
+			Laya.timer.frameLoop(3,this,__bind(this,this.animate));
+			this._preFrameTime=Browser.now();
+			this._frameIndex=0;
+			this._time=0;
+			this._interval=0;
+		}
+		this._spriteNum++;
+		this._aniDic[aniName]=sprite;
+		if (this.textureArray && this._frameIndex < this.textureArray.length){
+			var tTileTextureSet=this.textureArray[this._frameIndex];
+			this.drawTexture(sprite,tTileTextureSet);
+		}
+	}
+
+	__proto.animate=function(){
+		if (this.textureArray && this.textureArray.length > 0 && this.durationTimeArray && this.durationTimeArray.length > 0){
+			var tNow=Browser.now();
+			this._interval=tNow-this._preFrameTime;
+			this._preFrameTime=tNow;
+			if (this._interval > this.animationTotalTime){
+				this._interval=this._interval % this.animationTotalTime;
+			}
+			this._time+=this._interval;
+			var tTime=this.durationTimeArray[this._frameIndex];
+			while (this._time > tTime){
+				this._time-=tTime;
+				this._frameIndex++;
+				if (this._frameIndex >=this.durationTimeArray.length || this._frameIndex >=this.textureArray.length){
+					this._frameIndex=0;
+				};
+				var tTileTextureSet=this.textureArray[this._frameIndex];
+				var tSprite;
+				for (var p in this._aniDic){
+					tSprite=this._aniDic[p];
+					this.drawTexture(tSprite,tTileTextureSet);
+				}
+				tTime=this.durationTimeArray[this._frameIndex];
+			}
+		}
+	}
+
+	__proto.drawTexture=function(sprite,tileTextSet){
+		sprite.graphics.clear();
+		sprite.graphics.drawTexture(tileTextSet.texture,tileTextSet.offX,tileTextSet.offY);
+	}
+
+	__proto.removeAniSprite=function(_name){
+		if (this._aniDic && this._aniDic[_name]){
+			delete this._aniDic[_name];
+			this._spriteNum--
+			if (this._spriteNum==0){
+				Laya.timer.clear(this,__bind(this,this.animate));
+			}
+		}
+	}
+
+	__proto.showDebugInfo=function(){
+		var tInfo=null;
+		if (this._spriteNum > 0){
+			tInfo="TileTextureSet::gid:"+this.gid.toString()+" 动画数:"+this._spriteNum.toString();
+		}
+		return tInfo;
+	}
+
+	__proto.clearAll=function(){
+		this.gid=-1;
+		if (this.texture){
+			this.texture.destroy();
+			this.texture=null;
+		}
+		this.offX=0;
+		this.offY=0;
+		this.textureArray=null;
+		this.durationTimeArray=null;
+		this.isAnimation=false;
+		this._spriteNum=0;
+		this._aniDic=null;
+		this._frameIndex=0;
+		this._preFrameTime=0;
+		this._time=0;
+		this._interval=0;
+	}
+
+	return TileTexSet;
+})()
+
+
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/tiledmap/src/laya/map/TiledMap.as=======199.999811/199.999811
 //class laya.map.TiledMap
 var TiledMap=(function(){
 	var GRect,TileMapAniData,TileSet;
 	function TiledMap(){
-		//json数据
 		this._jsonData=null;
-		//存放地图中用到的所有子纹理数据
 		this._tileTexSetArr=[];
-		//主纹理数据，主要在释放纹理资源时使用
 		this._texArray=[];
-		//地图信息中的一些基本数据
 		this._x=0;
-		//地图的坐标
 		this._y=0;
-		//_height=_mapTileH *_mapH
 		this._width=0;
-		//地图的宽度
 		this._height=0;
-		//地图的高度
 		this._mapW=0;
-		//地图的横向格子数
 		this._mapH=0;
-		//地图的竖向格子数
 		this._mapTileW=0;
-		//tile的宽度
 		this._mapTileH=0;
-		//地图的显示对象
 		this._mapSprite=null;
-		//地图的显示对象
 		this._layerArray=[];
-		//这里保存所有的MapLayer对象
 		this._renderLayerArray=[];
-		//这里保存需要渲染的MapLayer对象
 		this._gridArray=[];
-		//地图块相关的
 		this._showGridKey=false;
-		//是否显示块边界线（用来调试用）
 		this._totalGridNum=0;
-		//一层中的GridSprite的总数
 		this._gridW=0;
-		//地图的横向块数
 		this._gridH=0;
-		//地图的坚向块数
 		this._gridWidth=450;
-		//块的默认宽度
 		this._gridHeight=450;
-		//块的默认高度
 		this._jsonLoader=null;
-		//用来加载JSON文件用的LOADER
 		this._loader=null;
-		//用来加载纹理数据用的LOADER
 		this._tileSetArray=[];
-		//用来存放还需要哪些儿纹理等待加载
 		this._currTileSet=null;
-		//正在加载的纹理需要的数据源
 		this._completeHandler=null;
-		//上次视口显示的块范围
 		this._index=0;
 		this._animationDic={};
-		//需要创建的动画数据
 		this._properties=null;
-		//当前地图的自定义属性
 		this._tileProperties={};
-		//图块属性
 		this._tileProperties2={};
-		//默认的地图类型（具体要看JSON文件）
 		this._orientation="orthogonal";
-		//默认的tile渲染顺序（具体要看JSON文件）
 		this._renderOrder="right-down";
-		//调试用的颜色组合
 		this._colorArray=["FF","00","33","66"];
-		//缩放相关的操作
 		this._scale=1;
 		this._pivotScaleX=0.5;
 		this._pivotScaleY=0.5;
 		this._centerX=0;
 		this._centerY=0;
-		/**@private */
 		this._viewPortX=0;
-		/**@private */
 		this._viewPortY=0;
 		this._viewPortWidth=0;
 		this._viewPortHeight=0;
-		//是否开启线性取样
 		this._enableLinear=true;
-		//资源的相对路径
 		this._resPath=null;
 		this._pathArray=null;
-		//把地图限制在显示区域
 		this._limitRange=false;
-		/**
-		*快速更新模式是否不可用
-		*/
 		this._fastDirty=true;
-		/**
-		*是否自动缓存没有动画的地块
-		*/
 		this.autoCache=true;
-		/**
-		*自动缓存类型,地图较大时建议使用normal
-		*/
 		this.autoCacheType="normal";
-		/**
-		*是否合并图层,开启合并图层时，图层属性内可添加layer属性，运行时将会将相邻的layer属性相同的图层进行合并以提高性能
-		*/
 		this.enableMergeLayer=false;
-		/**
-		*是否移除被覆盖的格子,地块可添加type属性，type不为0时表示不透明，被不透明地块遮挡的地块将会被剔除以提高性能
-		*/
 		this.removeCoveredTile=false;
-		/**
-		*是否显示大格子里显示的贴图数量
-		*/
 		this.showGridTextureCount=false;
-		/**
-		*是否调整地块边缘消除缩放导致的缝隙
-		*/
 		this.antiCrack=true;
-		/**
-		*是否在加载完成之后cache所有大格子
-		*/
 		this.cacheAllAfterInit=false;
 		this._texutreStartDic={};
 		this._rect=new Rectangle();
@@ -144,18 +185,8 @@ var TiledMap=(function(){
 		this._mapSprite=new Sprite();
 	}
 
-	__class(TiledMap,'laya.map.TiledMap');
+	__class(TiledMap,'laya.map.TiledMap',true);
 	var __proto=TiledMap.prototype;
-	/**
-	*创建地图
-	*@param mapName JSON文件名字
-	*@param viewRect 视口区域
-	*@param completeHandler 地图创建完成的回调函数
-	*@param viewRectPadding 视口扩充区域，把视口区域上、下、左、右扩充一下，防止视口移动时的穿帮
-	*@param gridSize grid大小
-	*@param enableLinear 是否开启线性取样（为false时，可以解决地图黑线的问题，但画质会锐化）
-	*@param limitRange 把地图限制在显示区域
-	*/
 	__proto.createMap=function(mapName,viewRect,completeHandler,viewRectPadding,gridSize,enableLinear,limitRange){
 		(enableLinear===void 0)&& (enableLinear=true);
 		(limitRange===void 0)&& (limitRange=false);
@@ -188,14 +219,10 @@ var TiledMap=(function(){
 			this._pathArray=[];
 		}
 		this._jsonLoader=new Loader();
-		this._jsonLoader.once("complete",this,this.onJsonComplete);
+		this._jsonLoader.once("complete",this,__bind(this,this.onJsonComplete));
 		this._jsonLoader.load(mapName,/*laya.net.Loader.JSON*/"json",false);
 	}
 
-	/**
-	*json文件读取成功后，解析里面的纹理数据，进行加载
-	*@param e JSON数据
-	*/
 	__proto.onJsonComplete=function(e){
 		var tJsonData=this._jsonData=e;
 		this._properties=tJsonData.properties;
@@ -244,18 +271,12 @@ var TiledMap=(function(){
 		if (this._tileSetArray.length > 0){
 			tTileSet=this._currTileSet=this._tileSetArray.shift();
 			this._loader=new Loader();
-			this._loader.once("complete",this,this.onTextureComplete);
+			this._loader.once("complete",this,__bind(this,this.onTextureComplete));
 			var tPath=this.mergePath(this._resPath,tTileSet.image);
 			this._loader.load(tPath,/*laya.net.Loader.IMAGE*/"image",false);
 		}
 	}
 
-	/**
-	*合并路径
-	*@param resPath
-	*@param relativePath
-	*@return
-	*/
 	__proto.mergePath=function(resPath,relativePath){
 		var tResultPath="";
 		var tImageArray=relativePath.split("/");
@@ -293,10 +314,6 @@ var TiledMap=(function(){
 		return tResultPath;
 	}
 
-	/**
-	*纹理加载完成，如果所有的纹理加载，开始初始化地图
-	*@param e 纹理数据
-	*/
 	__proto.onTextureComplete=function(e){
 		var json=this._jsonData;
 		var tTexture=e;
@@ -331,7 +348,7 @@ var TiledMap=(function(){
 		}
 		if (this._tileSetArray.length > 0){
 			tTileSet=this._currTileSet=this._tileSetArray.shift();
-			this._loader.once("complete",this,this.onTextureComplete);
+			this._loader.once("complete",this,__bind(this,this.onTextureComplete));
 			var tPath=this.mergePath(this._resPath,tTileSet.image);
 			this._loader.load(tPath,/*laya.net.Loader.IMAGE*/"image",false);
 		}
@@ -355,9 +372,6 @@ var TiledMap=(function(){
 		tex.uv[5]=tex.uv[7]=pY1-dH;
 	}
 
-	/**
-	*初始化地图
-	*/
 	__proto.initMap=function(){
 		var i=0,n=0;
 		for (var p in this._animationDic){
@@ -441,7 +455,6 @@ var TiledMap=(function(){
 		}
 	}
 
-	//这里应该发送消息，通知上层，地图创建完成
 	__proto.addTileProperties=function(tileDataDic){
 		var key;
 		for (key in tileDataDic){
@@ -495,11 +508,6 @@ var TiledMap=(function(){
 		}
 	}
 
-	/**
-	*得到一块指定的地图纹理
-	*@param index 纹理的索引值，默认从1开始
-	*@return
-	*/
 	__proto.getTexture=function(index){
 		if (index < this._tileTexSetArr.length){
 			return this._tileTexSetArr[index];
@@ -507,11 +515,6 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*得到地图的自定义属性
-	*@param name 属性名称
-	*@return
-	*/
 	__proto.getMapProperties=function(name){
 		if (this._properties){
 			return this._properties[name];
@@ -519,13 +522,6 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*得到tile自定义属性
-	*@param index 地图块索引
-	*@param id 具体的TileSetID
-	*@param name 属性名称
-	*@return
-	*/
 	__proto.getTileProperties=function(index,id,name){
 		if (this._tileProperties[index] && this._tileProperties[index][id]){
 			return this._tileProperties[index][id][name];
@@ -533,11 +529,6 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*通过纹理索引，生成一个可控制物件
-	*@param index 纹理的索引值，默认从1开始
-	*@return
-	*/
 	__proto.getSprite=function(index,width,height){
 		if (0 < this._tileTexSetArr.length){
 			var tGridSprite=new GridSprite();
@@ -562,22 +553,12 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*设置视口的缩放中心点（例如：scaleX=scaleY=0.5,就是以视口中心缩放）
-	*@param scaleX
-	*@param scaleY
-	*/
 	__proto.setViewPortPivotByScale=function(scaleX,scaleY){
 		this._pivotScaleX=scaleX;
 		this._pivotScaleY=scaleY;
 		this._fastDirty=true;
 	}
 
-	/**
-	*移动视口
-	*@param moveX 视口的坐标x
-	*@param moveY 视口的坐标y
-	*/
 	__proto.moveViewPort=function(moveX,moveY){
 		this._x=-moveX;
 		this._y=-moveY;
@@ -595,13 +576,6 @@ var TiledMap=(function(){
 		}
 	}
 
-	/**
-	*改变视口大小
-	*@param moveX 视口的坐标x
-	*@param moveY 视口的坐标y
-	*@param width 视口的宽
-	*@param height 视口的高
-	*/
 	__proto.changeViewPort=function(moveX,moveY,width,height){
 		if (moveX==this._rect.x && moveY==this._rect.y && width==this._rect.width && height==this._rect.height)return;
 		if (width==this._rect.width && height==this._rect.height){
@@ -620,13 +594,6 @@ var TiledMap=(function(){
 		this.updateViewPort();
 	}
 
-	/**
-	*在锚点的基础上计算，通过宽和高，重新计算视口
-	*@param width 新视口宽
-	*@param height 新视口高
-	*@param rect 返回的结果
-	*@return
-	*/
 	__proto.changeViewPortBySize=function(width,height,rect){
 		if (rect==null){
 			rect=new Rectangle();
@@ -641,11 +608,6 @@ var TiledMap=(function(){
 		return rect;
 	}
 
-	/**
-	*快速更新视口 ,只有在视口大小和各种缩放信息没有改变时才可以使用这个函数更新
-	*@param dx 视口偏移x
-	*@param dy 视口偏移y
-	*/
 	__proto.updateViewPortFast=function(dx,dy){
 		this._centerX+=dx;
 		this._centerY+=dy;
@@ -674,9 +636,6 @@ var TiledMap=(function(){
 		this.updateMapLayersPos();
 	}
 
-	/**
-	*刷新地图层坐标
-	*/
 	__proto.updateMapLayersPos=function(){
 		var tMapLayer;
 		var len=this._renderLayerArray.length;
@@ -689,9 +648,6 @@ var TiledMap=(function(){
 		}
 	}
 
-	/**
-	*刷新视口
-	*/
 	__proto.updateViewPort=function(){
 		this._fastDirty=false;
 		var dw=this._rect.width *this._pivotScaleX;
@@ -747,9 +703,6 @@ var TiledMap=(function(){
 		this.updateMapLayersPos();
 	}
 
-	/**
-	*GRID裁剪
-	*/
 	__proto.clipViewPort=function(){
 		var tSpriteNum=0;
 		var tSprite;
@@ -839,11 +792,6 @@ var TiledMap=(function(){
 		}
 	}
 
-	/**
-	*显示指定的GRID
-	*@param gridX
-	*@param gridY
-	*/
 	__proto.showGrid=function(gridX,gridY){
 		if (gridX < 0 || gridX >=this._gridW || gridY < 0 || gridY >=this._gridH){
 			return;
@@ -1091,11 +1039,6 @@ var TiledMap=(function(){
 		return tTempArray;
 	}
 
-	/**
-	*隐藏指定的GRID
-	*@param gridX
-	*@param gridY
-	*/
 	__proto.hideGrid=function(gridX,gridY){
 		if (gridX < 0 || gridX >=this._gridW || gridY < 0 || gridY >=this._gridH){
 			return;
@@ -1114,12 +1057,6 @@ var TiledMap=(function(){
 		}
 	}
 
-	/**
-	*得到对象层上的某一个物品
-	*@param layerName 层的名称
-	*@param objectName 所找物品的名称
-	*@return
-	*/
 	__proto.getLayerObject=function(layerName,objectName){
 		var tLayer=null;
 		for (var i=0;i < this._layerArray.length;i++){
@@ -1134,9 +1071,6 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*销毁地图
-	*/
 	__proto.destroy=function(){
 		this._orientation="orthogonal";
 		this._jsonData=null;
@@ -1204,19 +1138,10 @@ var TiledMap=(function(){
 		this._pathArray=null;
 	}
 
-	/**
-	*整个地图的显示容器
-	*@return 地图的显示容器
-	*/
 	__proto.mapSprite=function(){
 		return this._mapSprite;
 	}
 
-	/**
-	*得到指定的MapLayer
-	*@param layerName 要找的层名称
-	*@return
-	*/
 	__proto.getLayerByName=function(layerName){
 		var tMapLayer;
 		for (var i=0;i < this._layerArray.length;i++){
@@ -1228,11 +1153,6 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*通过索引得MapLayer
-	*@param index 要找的层索引
-	*@return
-	*/
 	__proto.getLayerByIndex=function(index){
 		if (index < this._layerArray.length){
 			return this._layerArray[index];
@@ -1240,28 +1160,78 @@ var TiledMap=(function(){
 		return null;
 	}
 
-	/**
-	*当前地图类型
-	*/
+	__getset(0,__proto,'renderOrder',function(){
+		return this._renderOrder;
+	});
+
+	__getset(0,__proto,'gridHeight',function(){
+		return this._gridHeight;
+	});
+
+	__getset(0,__proto,'gridWidth',function(){
+		return this._gridWidth;
+	});
+
+	__getset(0,__proto,'y',function(){
+		return this._y;
+	});
+
+	__getset(0,__proto,'tileHeight',function(){
+		return this._mapTileH;
+	});
+
+	__getset(0,__proto,'viewPortWidth',function(){
+		return this._viewPortWidth;
+	});
+
+	__getset(0,__proto,'viewPortY',function(){
+		return-this._viewPortY;
+	});
+
 	__getset(0,__proto,'orientation',function(){
 		return this._orientation;
 	});
 
-	/**
-	*@private
-	*视口x坐标
-	*/
+	__getset(0,__proto,'numRowsTile',function(){
+		return this._mapH;
+	});
+
+	__getset(0,__proto,'height',function(){
+		return this._height;
+	});
+
+	__getset(0,__proto,'x',function(){
+		return this._x;
+	});
+
 	__getset(0,__proto,'viewPortX',function(){
 		return-this._viewPortX;
 	});
 
-	/**
-	*设置地图缩放
-	*@param scale
-	*/
-	/**
-	*得到当前地图的缩放
-	*/
+	__getset(0,__proto,'numRowsGrid',function(){
+		return this._gridH;
+	});
+
+	__getset(0,__proto,'width',function(){
+		return this._width;
+	});
+
+	__getset(0,__proto,'numColumnsTile',function(){
+		return this._mapW;
+	});
+
+	__getset(0,__proto,'tileWidth',function(){
+		return this._mapTileW;
+	});
+
+	__getset(0,__proto,'viewPortHeight',function(){
+		return this._viewPortHeight;
+	});
+
+	__getset(0,__proto,'numColumnsGrid',function(){
+		return this._gridW;
+	});
+
 	__getset(0,__proto,'scale',function(){
 		return this._scale;
 		},function(scale){
@@ -1272,121 +1242,6 @@ var TiledMap=(function(){
 		this._viewPortHeight=this._rect.height / scale;
 		this._mapSprite.scale(this._scale,this._scale);
 		this.updateViewPort();
-	});
-
-	/**
-	*格子的宽度
-	*/
-	__getset(0,__proto,'tileWidth',function(){
-		return this._mapTileW;
-	});
-
-	/**
-	*@private
-	*视口的y坐标
-	*/
-	__getset(0,__proto,'viewPortY',function(){
-		return-this._viewPortY;
-	});
-
-	/**
-	*格子的高度
-	*/
-	__getset(0,__proto,'tileHeight',function(){
-		return this._mapTileH;
-	});
-
-	/**
-	*地图的宽度
-	*/
-	__getset(0,__proto,'width',function(){
-		return this._width;
-	});
-
-	/**
-	*地图竖向的格子数
-	*/
-	__getset(0,__proto,'numRowsTile',function(){
-		return this._mapH;
-	});
-
-	/**
-	*地图横向的格子数
-	*/
-	__getset(0,__proto,'numColumnsTile',function(){
-		return this._mapW;
-	});
-
-	/**
-	*地图的高度
-	*/
-	__getset(0,__proto,'height',function(){
-		return this._height;
-	});
-
-	/**
-	*@private
-	*视口的宽度
-	*/
-	__getset(0,__proto,'viewPortWidth',function(){
-		return this._viewPortWidth;
-	});
-
-	/**
-	*@private
-	*视口的高度
-	*/
-	__getset(0,__proto,'viewPortHeight',function(){
-		return this._viewPortHeight;
-	});
-
-	/**
-	*地图的x坐标
-	*/
-	__getset(0,__proto,'x',function(){
-		return this._x;
-	});
-
-	/**
-	*地图的y坐标
-	*/
-	__getset(0,__proto,'y',function(){
-		return this._y;
-	});
-
-	/**
-	*块的宽度
-	*/
-	__getset(0,__proto,'gridWidth',function(){
-		return this._gridWidth;
-	});
-
-	/**
-	*块的高度
-	*/
-	__getset(0,__proto,'gridHeight',function(){
-		return this._gridHeight;
-	});
-
-	/**
-	*地图的横向块数
-	*/
-	__getset(0,__proto,'numColumnsGrid',function(){
-		return this._gridW;
-	});
-
-	/**
-	*地图的坚向块数
-	*/
-	__getset(0,__proto,'numRowsGrid',function(){
-		return this._gridH;
-	});
-
-	/**
-	*tile渲染顺序
-	*/
-	__getset(0,__proto,'renderOrder',function(){
-		return this._renderOrder;
 	});
 
 	TiledMap.ORIENTATION_ORTHOGONAL="orthogonal";
@@ -1407,7 +1262,7 @@ var TiledMap=(function(){
 				this.right=0;
 				this.bottom=0;
 			}
-			__class(GRect,'');
+			__class(GRect,'',true);
 			var __proto=GRect.prototype;
 			__proto.clearAll=function(){
 				this.left=this.top=this.right=this.bottom=0;
@@ -1422,7 +1277,7 @@ var TiledMap=(function(){
 				this.mTileTexSetArr=[];
 				this.image=null;
 			}
-			__class(TileMapAniData,'');
+			__class(TileMapAniData,'',true);
 			return TileMapAniData;
 		})()
 		//class TileSet
@@ -1442,7 +1297,7 @@ var TiledMap=(function(){
 				this.titleoffsetY=0;
 				this.tileproperties=null;
 			}
-			__class(TileSet,'');
+			__class(TileSet,'',true);
 			var __proto=TileSet.prototype;
 			__proto.init=function(data){
 				this.firstgid=data.firstgid;
@@ -1470,198 +1325,28 @@ var TiledMap=(function(){
 })()
 
 
-/**
-*此类是子纹理类，也包括同类动画的管理
-*TiledMap会把纹理分割成无数子纹理，也可以把其中的某块子纹理替换成一个动画序列
-*本类的实现就是如果发现子纹理被替换成一个动画序列，animationKey会被设为true
-*即animationKey为true,就使用TileAniSprite来做显示，把动画序列根据时间画到TileAniSprite上
-*@author ...
-*/
-//class laya.map.TileTexSet
-var TileTexSet=(function(){
-	function TileTexSet(){
-		/**唯一标识*/
-		this.gid=-1;
-		/**子纹理的引用*/
-		this.texture=null;
-		/**纹理显示时的坐标偏移X*/
-		this.offX=0;
-		/**纹理显示时的坐标偏移Y*/
-		this.offY=0;
-		/**当前要播放动画的纹理序列*/
-		this.textureArray=null;
-		/**当前动画每帧的时间间隔*/
-		this.durationTimeArray=null;
-		/**动画播放的总时间 */
-		this.animationTotalTime=0;
-		/**true表示当前纹理，是一组动画，false表示当前只有一个纹理*/
-		this.isAnimation=false;
-		this._spriteNum=0;
-		//当前动画有多少个显示对象
-		this._aniDic=null;
-		//通过显示对象的唯一名字，去保存显示显示对象
-		this._frameIndex=0;
-		//当前动画播放到第几帧
-		this._time=0;
-		//距离上次动画刷新，过了多少长时间
-		this._interval=0;
-		//每帧刷新的时间间隔
-		this._preFrameTime=0;
-	}
-
-	__class(TileTexSet,'laya.map.TileTexSet');
-	var __proto=TileTexSet.prototype;
-	/**
-	*加入一个动画显示对象到此动画中
-	*@param aniName //显示对象的名字
-	*@param sprite //显示对象
-	*/
-	__proto.addAniSprite=function(aniName,sprite){
-		if (this.animationTotalTime==0){
-			return;
-		}
-		if (this._aniDic==null){
-			this._aniDic={};
-		}
-		if (this._spriteNum==0){
-			Laya.timer.frameLoop(3,this,this.animate);
-			this._preFrameTime=Browser.now();
-			this._frameIndex=0;
-			this._time=0;
-			this._interval=0;
-		}
-		this._spriteNum++;
-		this._aniDic[aniName]=sprite;
-		if (this.textureArray && this._frameIndex < this.textureArray.length){
-			var tTileTextureSet=this.textureArray[this._frameIndex];
-			this.drawTexture(sprite,tTileTextureSet);
-		}
-	}
-
-	/**
-	*把动画画到所有注册的SPRITE上
-	*/
-	__proto.animate=function(){
-		if (this.textureArray && this.textureArray.length > 0 && this.durationTimeArray && this.durationTimeArray.length > 0){
-			var tNow=Browser.now();
-			this._interval=tNow-this._preFrameTime;
-			this._preFrameTime=tNow;
-			if (this._interval > this.animationTotalTime){
-				this._interval=this._interval % this.animationTotalTime;
-			}
-			this._time+=this._interval;
-			var tTime=this.durationTimeArray[this._frameIndex];
-			while (this._time > tTime){
-				this._time-=tTime;
-				this._frameIndex++;
-				if (this._frameIndex >=this.durationTimeArray.length || this._frameIndex >=this.textureArray.length){
-					this._frameIndex=0;
-				};
-				var tTileTextureSet=this.textureArray[this._frameIndex];
-				var tSprite;
-				for (var p in this._aniDic){
-					tSprite=this._aniDic[p];
-					this.drawTexture(tSprite,tTileTextureSet);
-				}
-				tTime=this.durationTimeArray[this._frameIndex];
-			}
-		}
-	}
-
-	__proto.drawTexture=function(sprite,tileTextSet){
-		sprite.graphics.clear();
-		sprite.graphics.drawTexture(tileTextSet.texture,tileTextSet.offX,tileTextSet.offY);
-	}
-
-	/**
-	*移除不需要更新的SPRITE
-	*@param _name
-	*/
-	__proto.removeAniSprite=function(_name){
-		if (this._aniDic && this._aniDic[_name]){
-			delete this._aniDic[_name];
-			this._spriteNum--
-			if (this._spriteNum==0){
-				Laya.timer.clear(this,this.animate);
-			}
-		}
-	}
-
-	/**
-	*显示当前动画的使用情况
-	*/
-	__proto.showDebugInfo=function(){
-		var tInfo=null;
-		if (this._spriteNum > 0){
-			tInfo="TileTextureSet::gid:"+this.gid.toString()+" 动画数:"+this._spriteNum.toString();
-		}
-		return tInfo;
-	}
-
-	/**
-	*清理
-	*/
-	__proto.clearAll=function(){
-		this.gid=-1;
-		if (this.texture){
-			this.texture.destroy();
-			this.texture=null;
-		}
-		this.offX=0;
-		this.offY=0;
-		this.textureArray=null;
-		this.durationTimeArray=null;
-		this.isAnimation=false;
-		this._spriteNum=0;
-		this._aniDic=null;
-		this._frameIndex=0;
-		this._preFrameTime=0;
-		this._time=0;
-		this._interval=0;
-	}
-
-	return TileTexSet;
-})()
-
-
-/**
-*地图的每层都会分块渲染处理
-*本类就是地图的块数据
-*@author ...
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/tiledmap/src/laya/map/GridSprite.as=======96.999694/96.999694
 //class laya.map.GridSprite extends laya.display.Sprite
 var GridSprite=(function(_super){
 	function GridSprite(){
-		/**相对于地图X轴的坐标*/
 		this.relativeX=0;
-		/**相对于地图Y轴的坐标*/
 		this.relativeY=0;
-		/**是否用于对象层的独立物件*/
 		this.isAloneObject=false;
-		/**当前GRID中是否有动画*/
 		this.isHaveAnimation=false;
-		/**当前GRID包含的动画*/
 		this.aniSpriteArray=null;
-		/**当前GRID包含多少个TILE(包含动画)*/
 		this.drawImageNum=0;
 		this._map=null;
 		GridSprite.__super.call(this);
 	}
 
-	__class(GridSprite,'laya.map.GridSprite',_super);
+	__class(GridSprite,'laya.map.GridSprite',false,_super);
 	var __proto=GridSprite.prototype;
-	/**
-	*传入必要的参数，用于裁剪，跟确认此对象类型
-	*@param map 把地图的引用传进来，参与一些裁剪计算
-	*@param objectKey true:表示当前GridSprite是个活动对象，可以控制，false:地图层的组成块
-	*/
 	__proto.initData=function(map,objectKey){
 		(objectKey===void 0)&& (objectKey=false);
 		this._map=map;
 		this.isAloneObject=objectKey;
 	}
 
-	/**@private */
 	__proto._setDisplay=function(value){
 		if (!value){
 			var cc=this._$P.cacheCanvas;
@@ -1680,10 +1365,6 @@ var GridSprite=(function(_super){
 		_super.prototype._setDisplay.call(this,value);
 	}
 
-	/**
-	*把一个动画对象绑定到当前GridSprite
-	*@param sprite 动画的显示对象
-	*/
 	__proto.addAniSprite=function(sprite){
 		if (this.aniSpriteArray==null){
 			this.aniSpriteArray=[];
@@ -1691,9 +1372,6 @@ var GridSprite=(function(_super){
 		this.aniSpriteArray.push(sprite);
 	}
 
-	/**
-	*显示当前GridSprite，并把上面的动画全部显示
-	*/
 	__proto.show=function(){
 		if (!this.visible){
 			this.visible=true;
@@ -1718,9 +1396,6 @@ var GridSprite=(function(_super){
 		}
 	}
 
-	/**
-	*隐藏当前GridSprite，并把上面绑定的动画全部移除
-	*/
 	__proto.hide=function(){
 		if (this.visible){
 			this.visible=false;
@@ -1745,9 +1420,6 @@ var GridSprite=(function(_super){
 		}
 	}
 
-	/**
-	*刷新坐标，当我们自己控制一个GridSprite移动时，需要调用此函数，手动刷新
-	*/
 	__proto.updatePos=function(){
 		if (this.isAloneObject){
 			if (this._map){
@@ -1767,9 +1439,6 @@ var GridSprite=(function(_super){
 		}
 	}
 
-	/**
-	*重置当前对象的所有属性
-	*/
 	__proto.clearAll=function(){
 		if (this._map){
 			this._map=null;
@@ -1795,11 +1464,7 @@ var GridSprite=(function(_super){
 })(Sprite)
 
 
-/**
-*地图支持多层渲染（例如，地表层，植被层，建筑层等）
-*本类就是层级类
-*@author ...
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/tiledmap/src/laya/map/MapLayer.as=======96.999693/96.999693
 //class laya.map.MapLayer extends laya.display.Sprite
 var MapLayer=(function(_super){
 	function MapLayer(){
@@ -1809,38 +1474,20 @@ var MapLayer=(function(_super){
 		this._tileHeightHalf=0;
 		this._mapWidthHalf=0;
 		this._mapHeightHalf=0;
-		/**
-		*@private
-		*/
 		this._gridSpriteArray=[];
 		this._objDic=null;
-		//用来做字典，方便查询
 		this._dataDic=null;
-		//临时变量
 		this._properties=null;
-		/**被合到的层*/
 		this.tarLayer=null;
-		/**当前Layer的名称*/
 		this.layerName=null;
-		/**
-		*当前需要更新的gridSprite列表
-		*/
 		this._showGridList=[];
-		/**
-		*活动对象列表,活动对象不管是否显示都需要更新
-		*/
 		this._aloneObjs=[];
 		MapLayer.__super.call(this);
 		this._tempMapPos=new Point();
 	}
 
-	__class(MapLayer,'laya.map.MapLayer',_super);
+	__class(MapLayer,'laya.map.MapLayer',false,_super);
 	var __proto=MapLayer.prototype;
-	/**
-	*解析LAYER数据，以及初始化一些数据
-	*@param layerData 地图数据中，layer数据的引用
-	*@param map 地图的引用
-	*/
 	__proto.init=function(layerData,map){
 		this._map=map;
 		this._mapData=layerData.data;
@@ -1915,11 +1562,6 @@ var MapLayer=(function(_super){
 		}
 	}
 
-	/**
-	*通过名字获取控制对象，如果找不到返回为null
-	*@param objName 所要获取对象的名字
-	*@return
-	*/
 	__proto.getObjectByName=function(objName){
 		if (this._objDic){
 			return this._objDic[objName];
@@ -1927,11 +1569,6 @@ var MapLayer=(function(_super){
 		return null;
 	}
 
-	/**
-	*通过名字获取数据，如果找不到返回为null
-	*@param objName 所要获取对象的名字
-	*@return
-	*/
 	__proto.getObjectDataByName=function(objName){
 		if (this._dataDic){
 			return this._dataDic[objName];
@@ -1939,11 +1576,6 @@ var MapLayer=(function(_super){
 		return null;
 	}
 
-	/**
-	*得到地图层的自定义属性
-	*@param name
-	*@return
-	*/
 	__proto.getLayerProperties=function(name){
 		if (this._properties){
 			return this._properties[name];
@@ -1951,12 +1583,6 @@ var MapLayer=(function(_super){
 		return null;
 	}
 
-	/**
-	*得到指定格子的数据
-	*@param tileX 格子坐标X
-	*@param tileY 格子坐标Y
-	*@return
-	*/
 	__proto.getTileData=function(tileX,tileY){
 		if (tileY >=0 && tileY < this._map.numRowsTile && tileX >=0 && tileX < this._map.numColumnsTile){
 			var tIndex=tileY *this._map.numColumnsTile+tileX;
@@ -1968,12 +1594,6 @@ var MapLayer=(function(_super){
 		return 0;
 	}
 
-	/**
-	*通过地图坐标得到屏幕坐标
-	*@param tileX 格子坐标X
-	*@param tileY 格子坐标Y
-	*@param screenPos 把计算好的屏幕坐标数据，放到此对象中
-	*/
 	__proto.getScreenPositionByTilePos=function(tileX,tileY,screenPos){
 		if (screenPos){
 			switch (this._map.orientation){
@@ -2004,12 +1624,6 @@ var MapLayer=(function(_super){
 		}
 	}
 
-	/**
-	*通过屏幕坐标来获取选中格子的数据
-	*@param screenX 屏幕坐标x
-	*@param screenY 屏幕坐标y
-	*@return
-	*/
 	__proto.getTileDataByScreenPos=function(screenX,screenY){
 		var tData=0;
 		if (this.getTilePositionByScreenPos(screenX,screenY,this._tempMapPos)){
@@ -2018,13 +1632,6 @@ var MapLayer=(function(_super){
 		return tData;
 	}
 
-	/**
-	*通过屏幕坐标来获取选中格子的索引
-	*@param screenX 屏幕坐标x
-	*@param screenY 屏幕坐标y
-	*@param result 把计算好的格子坐标，放到此对象中
-	*@return
-	*/
 	__proto.getTilePositionByScreenPos=function(screenX,screenY,result){
 		screenX=screenX/this._map.scale-this._map.viewPortX;
 		screenY=screenY/this._map.scale-this._map.viewPortY;
@@ -2087,12 +1694,6 @@ var MapLayer=(function(_super){
 		return false;
 	}
 
-	/**
-	*得到一个GridSprite
-	*@param gridX 当前Grid的X轴索引
-	*@param gridY 当前Grid的Y轴索引
-	*@return 一个GridSprite对象
-	*/
 	__proto.getDrawSprite=function(gridX,gridY){
 		var tSprite=new GridSprite();
 		tSprite.relativeX=gridX *this._map.gridWidth;
@@ -2103,10 +1704,6 @@ var MapLayer=(function(_super){
 		return tSprite;
 	}
 
-	/**
-	*将gridSprite设为显示状态
-	*@param gridSprite
-	*/
 	__proto.showGridSprite=function(gridSprite){
 		var gridList=this._showGridList;
 		var i=0,len=0;
@@ -2127,19 +1724,10 @@ var MapLayer=(function(_super){
 		}
 	}
 
-	/**
-	*将gridSprite设为隐藏状态
-	*@param gridSprite
-	*
-	*/
 	__proto.hideGridSprite=function(gridSprite){
 		gridSprite.visible=false;
 	}
 
-	/**
-	*更新此层中块的坐标
-	*手动刷新的目的是，保持层级的宽和高保持最小，加快渲染
-	*/
 	__proto.updateGridPos=function(){
 		var tSprite;
 		var tList;
@@ -2154,9 +1742,6 @@ var MapLayer=(function(_super){
 		}
 	}
 
-	/**
-	*更新此层中的活动对象
-	*/
 	__proto.updateAloneObject=function(){
 		var tSprite;
 		var tList;
@@ -2171,13 +1756,6 @@ var MapLayer=(function(_super){
 		}
 	}
 
-	/**
-	*渲染时使用需要更新的列表进行渲染，减少遍历
-	*@param context
-	*@param x
-	*@param y
-	*
-	*/
 	__proto.render=function(context,x,y){
 		var childs=this._childs;
 		this._childs=this._showGridList;
@@ -2185,14 +1763,6 @@ var MapLayer=(function(_super){
 		this._childs=childs;
 	}
 
-	/**
-	*@private
-	*把tile画到指定的显示对象上
-	*@param gridSprite 被指定显示的目标
-	*@param tileX 格子的X轴坐标
-	*@param tileY 格子的Y轴坐标
-	*@return
-	*/
 	__proto.drawTileTexture=function(gridSprite,tileX,tileY){
 		if (tileY >=0 && tileY < this._map.numRowsTile && tileX >=0 && tileX < this._map.numColumnsTile){
 			var tIndex=tileY *this._map.numColumnsTile+tileX;
@@ -2242,10 +1812,6 @@ var MapLayer=(function(_super){
 		return false;
 	}
 
-	/**
-	*@private
-	*清理当前对象
-	*/
 	__proto.clearAll=function(){
 		this._map=null;
 		this._mapData=null;
@@ -2281,49 +1847,31 @@ var MapLayer=(function(_super){
 })(Sprite)
 
 
-/**
-*TildMap的动画显示对象（一个动画（TileTexSet），可以绑定多个动画显示对象（TileAniSprite））
-*@author ...
-*/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/tiledmap/src/laya/map/TileAniSprite.as=======96.999692/96.999692
 //class laya.map.TileAniSprite extends laya.display.Sprite
 var TileAniSprite=(function(_super){
 	function TileAniSprite(){
 		this._tileTextureSet=null;
-		//动画的引用
 		this._aniName=null;
 		TileAniSprite.__super.call(this);
 	}
 
-	__class(TileAniSprite,'laya.map.TileAniSprite',_super);
+	__class(TileAniSprite,'laya.map.TileAniSprite',false,_super);
 	var __proto=TileAniSprite.prototype;
-	/**
-	*确定当前显示对象的名称以及属于哪个动画
-	*@param aniName 当前动画显示对象的名字，名字唯一
-	*@param tileTextureSet 当前显示对象属于哪个动画（一个动画，可以绑定多个同类显示对象）
-	*/
 	__proto.setTileTextureSet=function(aniName,tileTextureSet){
 		this._aniName=aniName;
 		this._tileTextureSet=tileTextureSet;
 		tileTextureSet.addAniSprite(this._aniName,this);
 	}
 
-	/**
-	*把当前动画加入到对应的动画刷新列表中
-	*/
 	__proto.show=function(){
 		this._tileTextureSet.addAniSprite(this._aniName,this);
 	}
 
-	/**
-	*把当前动画从对应的动画刷新列表中移除
-	*/
 	__proto.hide=function(){
 		this._tileTextureSet.removeAniSprite(this._aniName);
 	}
 
-	/**
-	*清理
-	*/
 	__proto.clearAll=function(){
 		this._tileTextureSet.removeAniSprite(this._aniName);
 		this.destroy();
@@ -2336,7 +1884,6 @@ var TileAniSprite=(function(_super){
 
 
 	Laya.__init([TiledMap]);
-})(window,document,Laya);
 
 if (typeof define === 'function' && define.amd){
 	define('laya.core', ['require', "exports"], function(require, exports) {

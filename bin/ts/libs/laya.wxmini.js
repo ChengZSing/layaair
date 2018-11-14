@@ -1,15 +1,9 @@
 
-(function(window,document,Laya){
-	var __un=Laya.un,__uns=Laya.uns,__static=Laya.static,__class=Laya.class,__getset=Laya.getset,__newvec=Laya.__newvec;
-
-	var Browser=laya.utils.Browser,Event=laya.events.Event,EventDispatcher=laya.events.EventDispatcher;
-	var HTMLImage=laya.resource.HTMLImage,Handler=laya.utils.Handler,Input=laya.display.Input,Loader=laya.net.Loader;
-	var LocalStorage=laya.net.LocalStorage,Matrix=laya.maths.Matrix,Render=laya.renders.Render,RunDriver=laya.utils.RunDriver;
-	var SoundChannel=laya.media.SoundChannel,SoundManager=laya.media.SoundManager,URL=laya.net.URL,Utils=laya.utils.Utils;
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniAdpter.as=======199.999280/199.999280
 //class laya.wx.mini.MiniAdpter
 var MiniAdpter=(function(){
 	function MiniAdpter(){}
-	__class(MiniAdpter,'laya.wx.mini.MiniAdpter');
+	__class(MiniAdpter,'laya.wx.mini.MiniAdpter',true);
 	MiniAdpter.getJson=function(data){
 		return JSON.parse(data);
 	}
@@ -209,11 +203,210 @@ var MiniAdpter=(function(){
 })()
 
 
-/**@private **/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniImage.as=======199.999279/199.999279
+//class laya.wx.mini.MiniImage
+var MiniImage=(function(){
+	function MiniImage(){}
+	__class(MiniImage,'laya.wx.mini.MiniImage',true);
+	var __proto=MiniImage.prototype;
+	__proto._loadImage=function(url){
+		var thisLoader=this;
+		if (MiniAdpter.isZiYu){
+			MiniImage.onCreateImage(url,thisLoader,true);
+			return;
+		};
+		var isTransformUrl=false;
+		if (!MiniFileMgr.isLocalNativeFile(url)){
+			isTransformUrl=true;
+			url=URL.formatURL(url);
+			}else{
+			if (url.indexOf("http://")!=-1 || url.indexOf("https://")!=-1){
+				if(MiniFileMgr.loadPath !=""){
+					url=url.split(MiniFileMgr.loadPath)[1];
+					}else{
+					var tempStr=URL.rootPath !="" ? URL.rootPath :URL.basePath;
+					if(tempStr !="")
+						url=url.split(tempStr)[1];
+				}
+			}
+		}
+		if (!MiniFileMgr.getFileInfo(url)){
+			if (url.indexOf("http://")!=-1 || url.indexOf("https://")!=-1){
+				if(MiniAdpter.isZiYu){
+					MiniImage.onCreateImage(url,thisLoader,true);
+					}else{
+					MiniFileMgr.downOtherFiles(url,new Handler(MiniImage,MiniImage.onDownImgCallBack,[url,thisLoader]),url);
+				}
+			}
+			else
+			MiniImage.onCreateImage(url,thisLoader,true);
+			}else {
+			MiniImage.onCreateImage(url,thisLoader,!isTransformUrl);
+		}
+	}
+
+	MiniImage.onDownImgCallBack=function(sourceUrl,thisLoader,errorCode,tempFilePath){
+		(tempFilePath===void 0)&& (tempFilePath="");
+		if (!errorCode)
+			MiniImage.onCreateImage(sourceUrl,thisLoader,false,tempFilePath);
+		else {
+			thisLoader.onError(null);
+		}
+	}
+
+	MiniImage.onCreateImage=function(sourceUrl,thisLoader,isLocal,tempFilePath){
+		(isLocal===void 0)&& (isLocal=false);
+		(tempFilePath===void 0)&& (tempFilePath="");
+		var fileNativeUrl;
+		if(MiniAdpter.autoCacheFile){
+			if (!isLocal){
+				if(tempFilePath !=""){
+					fileNativeUrl=tempFilePath;
+					}else{
+					var fileObj=MiniFileMgr.getFileInfo(sourceUrl);
+					var fileMd5Name=fileObj.md5;
+					fileNativeUrl=MiniFileMgr.getFileNativePath(fileMd5Name);
+				}
+			}else
+			fileNativeUrl=sourceUrl;
+			}else{
+			if(!isLocal)
+				fileNativeUrl=tempFilePath;
+			else
+			fileNativeUrl=sourceUrl;
+		}
+		if (thisLoader.imgCache==null)
+			thisLoader.imgCache={};
+		var image;
+		function clear (){
+			image.onload=null;
+			image.onerror=null;
+			delete thisLoader.imgCache[sourceUrl]
+		};
+		var onload=function (){
+			clear();
+			thisLoader._url=URL.formatURL(thisLoader._url);
+			thisLoader.onLoaded(image);
+		};
+		var onerror=function (){
+			clear();
+			thisLoader.event(/*laya.events.Event.ERROR*/"error","Load image failed");
+		}
+		if (thisLoader._type=="nativeimage"){
+			image=new Browser.window.Image();
+			image.crossOrigin="";
+			image.onload=onload;
+			image.onerror=onerror;
+			image.src=fileNativeUrl;
+			thisLoader.imgCache[sourceUrl]=image;
+			}else {
+			new HTMLImage.create(fileNativeUrl,{onload:onload,onerror:onerror,onCreate:function (img){
+					image=img;
+					thisLoader.imgCache[sourceUrl]=img;
+			}});
+		}
+	}
+
+	return MiniImage;
+})()
+
+
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniInput.as=======199.999278/199.999278
+//class laya.wx.mini.MiniInput
+var MiniInput=(function(){
+	function MiniInput(){}
+	__class(MiniInput,'laya.wx.mini.MiniInput',true);
+	MiniInput._createInputElement=function(){
+		Input['_initInput'](Input['area']=Browser.createElement("textarea"));
+		Input['_initInput'](Input['input']=Browser.createElement("input"));
+		Input['inputContainer']=Browser.createElement("div");
+		Input['inputContainer'].style.position="absolute";
+		Input['inputContainer'].style.zIndex=1E5;
+		Browser.container.appendChild(Input['inputContainer']);
+		Input['inputContainer'].setPos=function (x,y){Input['inputContainer'].style.left=x+'px';Input['inputContainer'].style.top=y+'px';};
+		Laya.stage.on("resize",null,MiniInput._onStageResize);
+		/*__JS__ */wx.onWindowResize && /*__JS__ */wx.onWindowResize(function(res){
+			/*__JS__ */window.dispatchEvent && /*__JS__ */window.dispatchEvent("resize");
+		});
+		SoundManager._soundClass=MiniSound;
+		SoundManager._musicClass=MiniSound;
+		var model=MiniAdpter.systemInfo.model;
+		var system=MiniAdpter.systemInfo.system;
+		if(model.indexOf("iPhone")!=-1){
+			Browser.onIPhone=true;
+			Browser.onIOS=true;
+			Browser.onIPad=true;
+			Browser.onAndriod=false;
+		}
+		if(system.indexOf("Android")!=-1 || system.indexOf("Adr")!=-1){
+			Browser.onAndriod=true;
+			Browser.onIPhone=false;
+			Browser.onIOS=false;
+			Browser.onIPad=false;
+		}
+	}
+
+	MiniInput._onStageResize=function(){
+		var ts=Laya.stage._canvasTransform.identity();
+		ts.scale((Browser.width / Render.canvas.width / RunDriver.getPixelRatio()),Browser.height / Render.canvas.height / RunDriver.getPixelRatio());
+	}
+
+	MiniInput.wxinputFocus=function(e){
+		var _inputTarget=Input['inputElement'].target;
+		if (_inputTarget && !_inputTarget.editable){
+			return;
+		}
+		MiniAdpter.window.wx.offKeyboardConfirm();
+		MiniAdpter.window.wx.offKeyboardInput();
+		MiniAdpter.window.wx.showKeyboard({defaultValue:_inputTarget.text,maxLength:_inputTarget.maxChars,multiple:_inputTarget.multiline,confirmHold:true,confirmType:'done',success:function (res){
+				},fail:function (res){
+		}});
+		MiniAdpter.window.wx.onKeyboardConfirm(function(res){
+			var str=res ? res.value :"";
+			_inputTarget.text=str;
+			_inputTarget.event(/*laya.events.Event.INPUT*/"input");
+			laya.wx.mini.MiniInput.inputEnter();
+		})
+		MiniAdpter.window.wx.onKeyboardInput(function(res){
+			var str=res ? res.value :"";
+			if (!_inputTarget.multiline){
+				if (str.indexOf("\n")!=-1){
+					laya.wx.mini.MiniInput.inputEnter();
+					return;
+				}
+			}
+			_inputTarget.text=str;
+			_inputTarget.event(/*laya.events.Event.INPUT*/"input");
+		});
+	}
+
+	MiniInput.inputEnter=function(){
+		Input['inputElement'].target.focus=false;
+	}
+
+	MiniInput.wxinputblur=function(){
+		MiniInput.hideKeyboard();
+	}
+
+	MiniInput.hideKeyboard=function(){
+		MiniAdpter.window.wx.offKeyboardConfirm();
+		MiniAdpter.window.wx.offKeyboardInput();
+		MiniAdpter.window.wx.hideKeyboard({success:function (res){
+				console.log('隐藏键盘')
+				},fail:function (res){
+				console.log("隐藏键盘出错:"+(res ? res.errMsg :""));
+		}});
+	}
+
+	return MiniInput;
+})()
+
+
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniFileMgr.as=======199.999277/199.999277
 //class laya.wx.mini.MiniFileMgr
 var MiniFileMgr=(function(){
 	function MiniFileMgr(){}
-	__class(MiniFileMgr,'laya.wx.mini.MiniFileMgr');
+	__class(MiniFileMgr,'laya.wx.mini.MiniFileMgr',true);
 	MiniFileMgr.isLocalNativeFile=function(url){
 		for(var i=0,sz=MiniAdpter.nativefiles.length;i<sz;i++){
 			if(url.indexOf(MiniAdpter.nativefiles[i])!=-1)
@@ -259,7 +452,7 @@ var MiniFileMgr=(function(){
 		(isSaveFile===void 0)&& (isSaveFile=false);
 		(fileType===void 0)&& (fileType="");
 		var downloadTask=MiniFileMgr.wxdown({url:fileUrl,success:function (data){
-				if (data.statusCode===200)
+				if (data.statusCode==200)
 					MiniFileMgr.readFile(data.tempFilePath,encoding,callBack,readyUrl,isSaveFile,fileType);
 				},fail:function (data){
 				callBack !=null && callBack.runWith([1,data]);
@@ -292,7 +485,7 @@ var MiniFileMgr=(function(){
 		(readyUrl===void 0)&& (readyUrl="");
 		(isSaveFile===void 0)&& (isSaveFile=false);
 		MiniFileMgr.wxdown({url:fileUrl,success:function (data){
-				if (data.statusCode===200){
+				if (data.statusCode==200){
 					if((MiniAdpter.autoCacheFile || isSaveFile)&& readyUrl.indexOf("wx.qlogo.cn")==-1)
 						MiniFileMgr.copyFile(data.tempFilePath,readyUrl,callBack);
 					else
@@ -507,211 +700,11 @@ var MiniFileMgr=(function(){
 })()
 
 
-/**@private **/
-//class laya.wx.mini.MiniImage
-var MiniImage=(function(){
-	function MiniImage(){}
-	__class(MiniImage,'laya.wx.mini.MiniImage');
-	var __proto=MiniImage.prototype;
-	/**@private **/
-	__proto._loadImage=function(url){
-		var thisLoader=this;
-		if (MiniAdpter.isZiYu){
-			MiniImage.onCreateImage(url,thisLoader,true);
-			return;
-		};
-		var isTransformUrl=false;
-		if (!MiniFileMgr.isLocalNativeFile(url)){
-			isTransformUrl=true;
-			url=URL.formatURL(url);
-			}else{
-			if (url.indexOf("http://")!=-1 || url.indexOf("https://")!=-1){
-				if(MiniFileMgr.loadPath !=""){
-					url=url.split(MiniFileMgr.loadPath)[1];
-					}else{
-					var tempStr=URL.rootPath !="" ? URL.rootPath :URL.basePath;
-					if(tempStr !="")
-						url=url.split(tempStr)[1];
-				}
-			}
-		}
-		if (!MiniFileMgr.getFileInfo(url)){
-			if (url.indexOf("http://")!=-1 || url.indexOf("https://")!=-1){
-				if(MiniAdpter.isZiYu){
-					MiniImage.onCreateImage(url,thisLoader,true);
-					}else{
-					MiniFileMgr.downOtherFiles(url,new Handler(MiniImage,MiniImage.onDownImgCallBack,[url,thisLoader]),url);
-				}
-			}
-			else
-			MiniImage.onCreateImage(url,thisLoader,true);
-			}else {
-			MiniImage.onCreateImage(url,thisLoader,!isTransformUrl);
-		}
-	}
-
-	MiniImage.onDownImgCallBack=function(sourceUrl,thisLoader,errorCode,tempFilePath){
-		(tempFilePath===void 0)&& (tempFilePath="");
-		if (!errorCode)
-			MiniImage.onCreateImage(sourceUrl,thisLoader,false,tempFilePath);
-		else {
-			thisLoader.onError(null);
-		}
-	}
-
-	MiniImage.onCreateImage=function(sourceUrl,thisLoader,isLocal,tempFilePath){
-		(isLocal===void 0)&& (isLocal=false);
-		(tempFilePath===void 0)&& (tempFilePath="");
-		var fileNativeUrl;
-		if(MiniAdpter.autoCacheFile){
-			if (!isLocal){
-				if(tempFilePath !=""){
-					fileNativeUrl=tempFilePath;
-					}else{
-					var fileObj=MiniFileMgr.getFileInfo(sourceUrl);
-					var fileMd5Name=fileObj.md5;
-					fileNativeUrl=MiniFileMgr.getFileNativePath(fileMd5Name);
-				}
-			}else
-			fileNativeUrl=sourceUrl;
-			}else{
-			if(!isLocal)
-				fileNativeUrl=tempFilePath;
-			else
-			fileNativeUrl=sourceUrl;
-		}
-		if (thisLoader.imgCache==null)
-			thisLoader.imgCache={};
-		var image;
-		function clear (){
-			image.onload=null;
-			image.onerror=null;
-			delete thisLoader.imgCache[sourceUrl]
-		};
-		var onload=function (){
-			clear();
-			thisLoader._url=URL.formatURL(thisLoader._url);
-			thisLoader.onLoaded(image);
-		};
-		var onerror=function (){
-			clear();
-			thisLoader.event(/*laya.events.Event.ERROR*/"error","Load image failed");
-		}
-		if (thisLoader._type=="nativeimage"){
-			image=new Browser.window.Image();
-			image.crossOrigin="";
-			image.onload=onload;
-			image.onerror=onerror;
-			image.src=fileNativeUrl;
-			thisLoader.imgCache[sourceUrl]=image;
-			}else {
-			new HTMLImage.create(fileNativeUrl,{onload:onload,onerror:onerror,onCreate:function (img){
-					image=img;
-					thisLoader.imgCache[sourceUrl]=img;
-			}});
-		}
-	}
-
-	return MiniImage;
-})()
-
-
-/**@private **/
-//class laya.wx.mini.MiniInput
-var MiniInput=(function(){
-	function MiniInput(){}
-	__class(MiniInput,'laya.wx.mini.MiniInput');
-	MiniInput._createInputElement=function(){
-		Input['_initInput'](Input['area']=Browser.createElement("textarea"));
-		Input['_initInput'](Input['input']=Browser.createElement("input"));
-		Input['inputContainer']=Browser.createElement("div");
-		Input['inputContainer'].style.position="absolute";
-		Input['inputContainer'].style.zIndex=1E5;
-		Browser.container.appendChild(Input['inputContainer']);
-		Input['inputContainer'].setPos=function (x,y){Input['inputContainer'].style.left=x+'px';Input['inputContainer'].style.top=y+'px';};
-		Laya.stage.on("resize",null,MiniInput._onStageResize);
-		/*__JS__ */wx.onWindowResize && /*__JS__ */wx.onWindowResize(function(res){
-			/*__JS__ */window.dispatchEvent && /*__JS__ */window.dispatchEvent("resize");
-		});
-		SoundManager._soundClass=MiniSound;
-		SoundManager._musicClass=MiniSound;
-		var model=MiniAdpter.systemInfo.model;
-		var system=MiniAdpter.systemInfo.system;
-		if(model.indexOf("iPhone")!=-1){
-			Browser.onIPhone=true;
-			Browser.onIOS=true;
-			Browser.onIPad=true;
-			Browser.onAndriod=false;
-		}
-		if(system.indexOf("Android")!=-1 || system.indexOf("Adr")!=-1){
-			Browser.onAndriod=true;
-			Browser.onIPhone=false;
-			Browser.onIOS=false;
-			Browser.onIPad=false;
-		}
-	}
-
-	MiniInput._onStageResize=function(){
-		var ts=Laya.stage._canvasTransform.identity();
-		ts.scale((Browser.width / Render.canvas.width / RunDriver.getPixelRatio()),Browser.height / Render.canvas.height / RunDriver.getPixelRatio());
-	}
-
-	MiniInput.wxinputFocus=function(e){
-		var _inputTarget=Input['inputElement'].target;
-		if (_inputTarget && !_inputTarget.editable){
-			return;
-		}
-		MiniAdpter.window.wx.offKeyboardConfirm();
-		MiniAdpter.window.wx.offKeyboardInput();
-		MiniAdpter.window.wx.showKeyboard({defaultValue:_inputTarget.text,maxLength:_inputTarget.maxChars,multiple:_inputTarget.multiline,confirmHold:true,confirmType:'done',success:function (res){
-				},fail:function (res){
-		}});
-		MiniAdpter.window.wx.onKeyboardConfirm(function(res){
-			var str=res ? res.value :"";
-			_inputTarget.text=str;
-			_inputTarget.event(/*laya.events.Event.INPUT*/"input");
-			laya.wx.mini.MiniInput.inputEnter();
-		})
-		MiniAdpter.window.wx.onKeyboardInput(function(res){
-			var str=res ? res.value :"";
-			if (!_inputTarget.multiline){
-				if (str.indexOf("\n")!=-1){
-					laya.wx.mini.MiniInput.inputEnter();
-					return;
-				}
-			}
-			_inputTarget.text=str;
-			_inputTarget.event(/*laya.events.Event.INPUT*/"input");
-		});
-	}
-
-	MiniInput.inputEnter=function(){
-		Input['inputElement'].target.focus=false;
-	}
-
-	MiniInput.wxinputblur=function(){
-		MiniInput.hideKeyboard();
-	}
-
-	MiniInput.hideKeyboard=function(){
-		MiniAdpter.window.wx.offKeyboardConfirm();
-		MiniAdpter.window.wx.offKeyboardInput();
-		MiniAdpter.window.wx.hideKeyboard({success:function (res){
-				console.log('隐藏键盘')
-				},fail:function (res){
-				console.log("隐藏键盘出错:"+(res ? res.errMsg :""));
-		}});
-	}
-
-	return MiniInput;
-})()
-
-
-/**@private **/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniLocalStorage.as=======199.999274/199.999274
 //class laya.wx.mini.MiniLocalStorage
 var MiniLocalStorage=(function(){
 	function MiniLocalStorage(){}
-	__class(MiniLocalStorage,'laya.wx.mini.MiniLocalStorage');
+	__class(MiniLocalStorage,'laya.wx.mini.MiniLocalStorage',true);
 	MiniLocalStorage.__init__=function(){
 		MiniLocalStorage.items=MiniLocalStorage;
 	}
@@ -757,11 +750,11 @@ var MiniLocalStorage=(function(){
 })()
 
 
-/**@private **/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniLocation.as=======199.999272/199.999272
 //class laya.wx.mini.MiniLocation
 var MiniLocation=(function(){
 	function MiniLocation(){}
-	__class(MiniLocation,'laya.wx.mini.MiniLocation');
+	__class(MiniLocation,'laya.wx.mini.MiniLocation',true);
 	MiniLocation.__init__=function(){
 		MiniAdpter.window.navigator.geolocation.getCurrentPosition=MiniLocation.getCurrentPosition;
 		MiniAdpter.window.navigator.geolocation.watchPosition=MiniLocation.watchPosition;
@@ -838,103 +831,21 @@ var MiniLocation=(function(){
 })()
 
 
-/**@private **/
-//class laya.wx.mini.MiniAccelerator extends laya.events.EventDispatcher
-var MiniAccelerator=(function(_super){
-	function MiniAccelerator(){
-		MiniAccelerator.__super.call(this);
-	}
-
-	__class(MiniAccelerator,'laya.wx.mini.MiniAccelerator',_super);
-	var __proto=MiniAccelerator.prototype;
-	/**
-	*侦听加速器运动。
-	*@param observer 回调函数接受4个参数，见类说明。
-	*/
-	__proto.on=function(type,caller,listener,args){
-		_super.prototype.on.call(this,type,caller,listener,args);
-		MiniAccelerator.startListen(this["onDeviceOrientationChange"]);
-		return this;
-	}
-
-	/**
-	*取消侦听加速器。
-	*@param handle 侦听加速器所用处理器。
-	*/
-	__proto.off=function(type,caller,listener,onceOnly){
-		(onceOnly===void 0)&& (onceOnly=false);
-		if (!this.hasListener(type))
-			MiniAccelerator.stopListen();
-		return _super.prototype.off.call(this,type,caller,listener,onceOnly);
-	}
-
-	MiniAccelerator.__init__=function(){
-		try{
-			var Acc;
-			Acc=/*__JS__ */laya.device.motion.Accelerator;
-			if (!Acc)return;
-			Acc["prototype"]["on"]=MiniAccelerator["prototype"]["on"];
-			Acc["prototype"]["off"]=MiniAccelerator["prototype"]["off"];
-			}catch (e){
-		}
-	}
-
-	MiniAccelerator.startListen=function(callBack){
-		MiniAccelerator._callBack=callBack;
-		if (MiniAccelerator._isListening)return;
-		MiniAccelerator._isListening=true;
-		try{
-			/*__JS__ */wx.onAccelerometerChange(MiniAccelerator.onAccelerometerChange);
-		}catch(e){}
-	}
-
-	MiniAccelerator.stopListen=function(){
-		MiniAccelerator._isListening=false;
-		try{
-			/*__JS__ */wx.stopAccelerometer({});
-		}catch(e){}
-	}
-
-	MiniAccelerator.onAccelerometerChange=function(res){
-		var e;
-		e={};
-		e.acceleration=res;
-		e.accelerationIncludingGravity=res;
-		e.rotationRate={};
-		if (MiniAccelerator._callBack !=null){
-			MiniAccelerator._callBack(e);
-		}
-	}
-
-	MiniAccelerator._isListening=false;
-	MiniAccelerator._callBack=null;
-	return MiniAccelerator;
-})(EventDispatcher)
-
-
-/**@private **/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniLoader.as=======98.999267/98.999267
 //class laya.wx.mini.MiniLoader extends laya.events.EventDispatcher
 var MiniLoader=(function(_super){
 	function MiniLoader(){
 		MiniLoader.__super.call(this);
 	}
 
-	__class(MiniLoader,'laya.wx.mini.MiniLoader',_super);
+	__class(MiniLoader,'laya.wx.mini.MiniLoader',false,_super);
 	var __proto=MiniLoader.prototype;
-	/**
-	*@private
-	*@param url
-	*@param type
-	*@param cache
-	*@param group
-	*@param ignoreCache
-	*/
 	__proto.load=function(url,type,cache,group,ignoreCache){
 		(cache===void 0)&& (cache=true);
 		(ignoreCache===void 0)&& (ignoreCache=false);
 		var thisLoader=this;
 		thisLoader._url=url;
-		if (url.indexOf("data:image")===0)thisLoader._type=type=/*laya.net.Loader.IMAGE*/"image";
+		if (url.indexOf("data:image")==0)thisLoader._type=type=/*laya.net.Loader.IMAGE*/"image";
 		else {
 			thisLoader._type=type || (type=thisLoader.getTypeFromUrl(url));
 		}
@@ -1011,35 +922,85 @@ var MiniLoader=(function(_super){
 })(EventDispatcher)
 
 
-/**@private **/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniAccelerator.as=======98.999265/98.999265
+//class laya.wx.mini.MiniAccelerator extends laya.events.EventDispatcher
+var MiniAccelerator=(function(_super){
+	function MiniAccelerator(){
+		MiniAccelerator.__super.call(this);
+	}
+
+	__class(MiniAccelerator,'laya.wx.mini.MiniAccelerator',false,_super);
+	var __proto=MiniAccelerator.prototype;
+	__proto.on=function(type,caller,listener,args){
+		_super.prototype.on.call(this,type,caller,listener,args);
+		MiniAccelerator.startListen(this["onDeviceOrientationChange"]);
+		return this;
+	}
+
+	__proto.off=function(type,caller,listener,onceOnly){
+		(onceOnly===void 0)&& (onceOnly=false);
+		if (!this.hasListener(type))
+			MiniAccelerator.stopListen();
+		return _super.prototype.off.call(this,type,caller,listener,onceOnly);
+	}
+
+	MiniAccelerator.__init__=function(){
+		try{
+			var Acc;
+			Acc=/*__JS__ */laya.device.motion.Accelerator;
+			if (!Acc)return;
+			Acc["prototype"]["on"]=MiniAccelerator["prototype"]["on"];
+			Acc["prototype"]["off"]=MiniAccelerator["prototype"]["off"];
+			}catch (e){
+		}
+	}
+
+	MiniAccelerator.startListen=function(callBack){
+		MiniAccelerator._callBack=callBack;
+		if (MiniAccelerator._isListening)return;
+		MiniAccelerator._isListening=true;
+		try{
+			/*__JS__ */wx.onAccelerometerChange(MiniAccelerator.onAccelerometerChange);
+		}catch(e){}
+	}
+
+	MiniAccelerator.stopListen=function(){
+		MiniAccelerator._isListening=false;
+		try{
+			/*__JS__ */wx.stopAccelerometer({});
+		}catch(e){}
+	}
+
+	MiniAccelerator.onAccelerometerChange=function(res){
+		var e;
+		e={};
+		e.acceleration=res;
+		e.accelerationIncludingGravity=res;
+		e.rotationRate={};
+		if (MiniAccelerator._callBack !=null){
+			MiniAccelerator._callBack(e);
+		}
+	}
+
+	MiniAccelerator._isListening=false;
+	MiniAccelerator._callBack=null;
+	return MiniAccelerator;
+})(EventDispatcher)
+
+
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniSound.as=======98.999263/98.999263
 //class laya.wx.mini.MiniSound extends laya.events.EventDispatcher
 var MiniSound=(function(_super){
 	function MiniSound(){
-		/**@private **/
 		this._sound=null;
-		/**
-		*@private
-		*声音URL
-		*/
 		this.url=null;
-		/**
-		*@private
-		*是否已加载完成
-		*/
 		this.loaded=false;
-		/**@private **/
 		this.readyUrl=null;
 		MiniSound.__super.call(this);
 	}
 
-	__class(MiniSound,'laya.wx.mini.MiniSound',_super);
+	__class(MiniSound,'laya.wx.mini.MiniSound',false,_super);
 	var __proto=MiniSound.prototype;
-	/**
-	*@private
-	*加载声音。
-	*@param url 地址。
-	*
-	*/
 	__proto.load=function(url){
 		url=URL.formatURL(url);
 		this.url=url;
@@ -1054,12 +1015,11 @@ var MiniSound=(function(_super){
 			if(!MiniAdpter.autoCacheFile){
 				this.onDownLoadCallBack(url,0);
 				}else{
-				MiniFileMgr.downOtherFiles(url,Handler.create(this,this.onDownLoadCallBack,[url]),url);
+				MiniFileMgr.downOtherFiles(url,Handler.create(this,__bind(this,this.onDownLoadCallBack),[url]),url);
 			}
 		}
 	}
 
-	/**@private **/
 	__proto.onDownLoadCallBack=function(sourceUrl,errorCode){
 		if (!errorCode){
 			var fileNativeUrl;
@@ -1073,14 +1033,13 @@ var MiniSound=(function(_super){
 				this._sound=MiniSound._createSound();
 				this._sound.src=sourceUrl;
 			}
-			this._sound.onCanplay(MiniSound.bindToThis(this.onCanPlay,this));
-			this._sound.onError(MiniSound.bindToThis(this.onError,this));
+			this._sound.onCanplay(MiniSound.bindToThis(__bind(this,this.onCanPlay),this));
+			this._sound.onError(MiniSound.bindToThis(__bind(this,this.onError),this));
 			}else{
 			this.event(/*laya.events.Event.ERROR*/"error");
 		}
 	}
 
-	/**@private **/
 	__proto.onError=function(error){
 		try{
 			console.log("-----1---------------minisound-----id:"+MiniSound._id);
@@ -1094,7 +1053,6 @@ var MiniSound=(function(_super){
 		this._sound.offError(null);
 	}
 
-	/**@private **/
 	__proto.onCanPlay=function(){
 		this.loaded=true;
 		this.event(/*laya.events.Event.COMPLETE*/"complete");
@@ -1102,14 +1060,6 @@ var MiniSound=(function(_super){
 		this._sound.offCanplay(null);
 	}
 
-	/**
-	*@private
-	*播放声音。
-	*@param startTime 开始时间,单位秒
-	*@param loops 循环次数,0表示一直循环
-	*@return 声道 SoundChannel 对象。
-	*
-	*/
 	__proto.play=function(startTime,loops){
 		(startTime===void 0)&& (startTime=0);
 		(loops===void 0)&& (loops=0);
@@ -1135,18 +1085,13 @@ var MiniSound=(function(_super){
 		var channel=new MiniSoundChannel(tSound,this);
 		channel.url=this.url;
 		channel.loops=loops;
-		channel.loop=(loops===0 ? true :false);
+		channel.loop=(loops==0 ? true :false);
 		channel.startTime=startTime;
 		channel.play();
 		SoundManager.addChannel(channel);
 		return channel;
 	}
 
-	/**
-	*@private
-	*释放声音资源。
-	*
-	*/
 	__proto.dispose=function(){
 		var ad=MiniSound._audioCache[this.readyUrl];
 		if (ad){
@@ -1160,10 +1105,6 @@ var MiniSound=(function(_super){
 		}
 	}
 
-	/**
-	*@private
-	*获取总时间。
-	*/
 	__getset(0,__proto,'duration',function(){
 		return this._sound.duration;
 	});
@@ -1186,30 +1127,26 @@ var MiniSound=(function(_super){
 })(EventDispatcher)
 
 
-/**@private **/
+	//file:////Users/ChengZSing/Documents/codes/zsing/layaair/src/plugins/wx/src/laya/wx/mini/MiniSoundChannel.as=======97.999167/97.999167
 //class laya.wx.mini.MiniSoundChannel extends laya.media.SoundChannel
 var MiniSoundChannel=(function(_super){
 	function MiniSoundChannel(audio,miniSound){
-		/**@private **/
 		this._audio=null;
-		/**@private **/
 		this._onEnd=null;
-		/**@private **/
 		this._miniSound=null;
 		MiniSoundChannel.__super.call(this);
 		this._audio=audio;
 		this._miniSound=miniSound;
-		this._onEnd=MiniSoundChannel.bindToThis(this.__onEnd,this);
+		this._onEnd=MiniSoundChannel.bindToThis(__bind(this,this.__onEnd),this);
 		audio.onEnded(this._onEnd);
 	}
 
-	__class(MiniSoundChannel,'laya.wx.mini.MiniSoundChannel',_super);
+	__class(MiniSoundChannel,'laya.wx.mini.MiniSoundChannel',false,_super);
 	var __proto=MiniSoundChannel.prototype;
-	/**@private **/
 	__proto.__onEnd=function(){
 		if (this.loops==1){
 			if (this.completeHandler){
-				Laya.timer.once(10,this,this.__runComplete,[this.completeHandler],false);
+				Laya.timer.once(10,this,__bind(this,this.__runComplete),[this.completeHandler],false);
 				this.completeHandler=null;
 			}
 			this.stop();
@@ -1223,21 +1160,12 @@ var MiniSoundChannel=(function(_super){
 		this.play();
 	}
 
-	/**
-	*@private
-	*播放
-	*/
 	__proto.play=function(){
 		this.isStopped=false;
 		SoundManager.addChannel(this);
 		this._audio.play();
 	}
 
-	/**
-	*@private
-	*停止播放
-	*
-	*/
 	__proto.stop=function(){
 		this.isStopped=true;
 		SoundManager.removeChannel(this);
@@ -1251,13 +1179,11 @@ var MiniSoundChannel=(function(_super){
 		this._onEnd=null;
 	}
 
-	/**@private **/
 	__proto.pause=function(){
 		this.isStopped=true;
 		this._audio.pause();
 	}
 
-	/**@private **/
 	__proto.resume=function(){
 		if (!this._audio)
 			return;
@@ -1266,65 +1192,36 @@ var MiniSoundChannel=(function(_super){
 		this._audio.play();
 	}
 
-	/**@private **/
-	/**
-	*@private
-	*自动播放
-	*@param value
-	*/
-	__getset(0,__proto,'autoplay',function(){
-		return this._audio.autoplay;
-		},function(value){
-		this._audio.autoplay=value;
-	});
-
-	/**
-	*@private
-	*当前播放到的位置
-	*@return
-	*
-	*/
-	__getset(0,__proto,'position',function(){
-		if (!this._audio)
-			return 0;
-		return this._audio.currentTime;
-	});
-
-	/**
-	*@private
-	*获取总时间。
-	*/
-	__getset(0,__proto,'duration',function(){
-		if (!this._audio)
-			return 0;
-		return this._audio.duration;
-	});
-
-	/**@private **/
-	/**@private **/
 	__getset(0,__proto,'loop',function(){
 		return this._audio.loop;
 		},function(value){
 		this._audio.loop=value;
 	});
 
-	/**
-	*@private
-	*设置音量
-	*@param v
-	*
-	*/
-	/**
-	*@private
-	*获取音量
-	*@return
-	*/
+	__getset(0,__proto,'duration',function(){
+		if (!this._audio)
+			return 0;
+		return this._audio.duration;
+	});
+
+	__getset(0,__proto,'position',function(){
+		if (!this._audio)
+			return 0;
+		return this._audio.currentTime;
+	});
+
 	__getset(0,__proto,'volume',function(){
 		if (!this._audio)return 1;
 		return this._audio.volume;
 		},function(v){
 		if (!this._audio)return;
 		this._audio.volume=v;
+	});
+
+	__getset(0,__proto,'autoplay',function(){
+		return this._audio.autoplay;
+		},function(value){
+		this._audio.autoplay=value;
 	});
 
 	MiniSoundChannel.bindToThis=function(fun,scope){
@@ -1338,7 +1235,6 @@ var MiniSoundChannel=(function(_super){
 
 
 
-})(window,document,Laya);
 
 if (typeof define === 'function' && define.amd){
 	define('laya.core', ['require', "exports"], function(require, exports) {
